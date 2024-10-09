@@ -1,1 +1,8 @@
 #include "./Version.xcconfig"
+
+
+
+PRODUCT_NAME = $(PRODUCT_BUNDLE_IDENTIFIER)
+
+//INFOPLIST_KEY_CFBundleDisplayName = $(TARGET_NAME)
+INFOPLIST_KEY_CFBundleDisplayName = PopCameraShader Camera Extension

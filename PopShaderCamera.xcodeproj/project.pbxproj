@@ -155,9 +155,9 @@
 			productReference = F990A865286F663F00159819 /* PopShaderCamera.app */;
 			productType = "com.apple.product-type.application";
 		};
-		F990A87A286F666500159819 /* cameraextension */ = {
+		F990A87A286F666500159819 /* CameraExtension */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = F990A886286F666500159819 /* Build configuration list for PBXNativeTarget "cameraextension" */;
+			buildConfigurationList = F990A886286F666500159819 /* Build configuration list for PBXNativeTarget "CameraExtension" */;
 			buildPhases = (
 				F990A877286F666500159819 /* Sources */,
 				F990A878286F666500159819 /* Frameworks */,
@@ -167,7 +167,7 @@
 			);
 			dependencies = (
 			);
-			name = cameraextension;
+			name = CameraExtension;
 			productName = cameraextension;
 			productReference = F990A87B286F666500159819 /* com.newchromantics.PopShaderCamera.cameraextension.systemextension */;
 			productType = "com.apple.product-type.system-extension";
@@ -204,7 +204,7 @@
 			projectRoot = "";
 			targets = (
 				F990A864286F663F00159819 /* PopShaderCamera */,
-				F990A87A286F666500159819 /* cameraextension */,
+				F990A87A286F666500159819 /* CameraExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -254,7 +254,7 @@
 /* Begin PBXTargetDependency section */
 		F990A884286F666500159819 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = F990A87A286F666500159819 /* cameraextension */;
+			target = F990A87A286F666500159819 /* CameraExtension */;
 			targetProxy = F990A883286F666500159819 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -458,7 +458,6 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Extension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = cameraextension;
 				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "System extension in plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -467,7 +466,6 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopShaderCamera.cameraextension;
-				PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -486,7 +484,6 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Extension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = cameraextension;
 				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "System extension in plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -495,7 +492,6 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopShaderCamera.cameraextension;
-				PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -524,7 +520,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F990A886286F666500159819 /* Build configuration list for PBXNativeTarget "cameraextension" */ = {
+		F990A886286F666500159819 /* Build configuration list for PBXNativeTarget "CameraExtension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F990A887286F666500159819 /* Debug */,
