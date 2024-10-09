@@ -41,7 +41,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource {
     
     private var _whiteStripeIsAscending: Bool = false
     
-    var lastMessage = "Some Last Message"
+    var lastMessage = "Hello :)"
     
     func myStreamingCounter() -> String {
         return "sc=\(_streamingCounter)"
