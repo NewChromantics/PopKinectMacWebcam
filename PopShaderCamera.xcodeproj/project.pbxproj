@@ -44,6 +44,9 @@
 
 /* Begin PBXFileReference section */
 		BF3311E42CB6A39400D3936A /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
+		BF7CEF792CB6C66A00A20F77 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
+		BF7CEF7B2CB6C72B00A20F77 /* App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = App.xcconfig; sourceTree = "<group>"; };
+		BF7CEF7C2CB6C72B00A20F77 /* CameraExtension.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = CameraExtension.xcconfig; sourceTree = "<group>"; };
 		F990A865286F663F00159819 /* PopShaderCamera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PopShaderCamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F990A868286F663F00159819 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F990A86A286F663F00159819 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -76,9 +79,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		BF7CEF7A2CB6C66A00A20F77 /* Common */ = {
+			isa = PBXGroup;
+			children = (
+				BF7CEF7B2CB6C72B00A20F77 /* App.xcconfig */,
+				BF7CEF7C2CB6C72B00A20F77 /* CameraExtension.xcconfig */,
+				BF7CEF792CB6C66A00A20F77 /* Version.xcconfig */,
+			);
+			path = Common;
+			sourceTree = "<group>";
+		};
 		F990A85C286F663F00159819 = {
 			isa = PBXGroup;
 			children = (
+				BF7CEF7A2CB6C66A00A20F77 /* Common */,
 				F990A87C286F666500159819 /* Extension */,
 				F990A866286F663F00159819 /* Products */,
 				F990A867286F663F00159819 /* App */,
@@ -373,6 +387,7 @@
 		};
 		F990A875286F664500159819 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = BF7CEF7B2CB6C72B00A20F77 /* App.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -381,7 +396,6 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = X52DR36JY2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -394,7 +408,6 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopShaderCamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -405,6 +418,7 @@
 		};
 		F990A876286F664500159819 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = BF7CEF7B2CB6C72B00A20F77 /* App.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -413,7 +427,6 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = X52DR36JY2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -426,7 +439,6 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopShaderCamera;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -437,11 +449,11 @@
 		};
 		F990A887286F666500159819 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = BF7CEF7C2CB6C72B00A20F77 /* CameraExtension.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Extension/Extension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = X52DR36JY2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -454,7 +466,6 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
-				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopShaderCamera.cameraextension;
 				PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -466,11 +477,11 @@
 		};
 		F990A888286F666500159819 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = BF7CEF7C2CB6C72B00A20F77 /* CameraExtension.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Extension/Extension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = X52DR36JY2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -483,7 +494,6 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
-				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopShaderCamera.cameraextension;
 				PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
