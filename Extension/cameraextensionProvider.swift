@@ -139,7 +139,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource {
             var pixelBuffer: CVPixelBuffer?
 
             let timestamp = CMClockGetTime(CMClockGetHostTimeClock())
-            let text = self.lastMessage + " \(Int(timestamp.seconds))"
+			let text = self.lastMessage + " \(Int(timestamp.seconds*1000))"
             err = CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(kCFAllocatorDefault, self._bufferPool, self._bufferAuxAttributes, &pixelBuffer)
             if err != 0 {
                 os_log(.error, "out of pixel buffers \(err)")
