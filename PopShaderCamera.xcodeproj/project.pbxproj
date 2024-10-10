@@ -9,7 +9,8 @@
 /* Begin PBXBuildFile section */
 		BF7CEF7E2CB6CB9D00A20F77 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
 		BF7CEF832CB7DA4C00A20F77 /* CameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF822CB7DA4C00A20F77 /* CameraController.swift */; };
-		BF7CEF852CB7DB7900A20F77 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF842CB7DB7900A20F77 /* App.swift */; };
+		BF7CEF852CB7DB7900A20F77 /* AppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF842CB7DB7900A20F77 /* AppView.swift */; };
+		BF8474CE2CB7F97400016574 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
 		F990A869286F663F00159819 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A868286F663F00159819 /* AppDelegate.swift */; };
 		F990A86B286F663F00159819 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A86A286F663F00159819 /* ViewController.swift */; };
 		F990A86D286F664500159819 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F990A86C286F664500159819 /* Assets.xcassets */; };
@@ -52,7 +53,7 @@
 		BF7CEF7C2CB6C72B00A20F77 /* CameraExtension.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = CameraExtension.xcconfig; sourceTree = "<group>"; };
 		BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeError.swift; sourceTree = "<group>"; };
 		BF7CEF822CB7DA4C00A20F77 /* CameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraController.swift; sourceTree = "<group>"; };
-		BF7CEF842CB7DB7900A20F77 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
+		BF7CEF842CB7DB7900A20F77 /* AppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppView.swift; sourceTree = "<group>"; };
 		F990A865286F663F00159819 /* PopShaderCamera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PopShaderCamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F990A868286F663F00159819 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F990A86A286F663F00159819 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -119,7 +120,7 @@
 		F990A867286F663F00159819 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				BF7CEF842CB7DB7900A20F77 /* App.swift */,
+				BF7CEF842CB7DB7900A20F77 /* AppView.swift */,
 				F990A868286F663F00159819 /* AppDelegate.swift */,
 				BF7CEF822CB7DA4C00A20F77 /* CameraController.swift */,
 				F990A86A286F663F00159819 /* ViewController.swift */,
@@ -242,10 +243,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BF8474CE2CB7F97400016574 /* RuntimeError.swift in Sources */,
 				F990A86B286F663F00159819 /* ViewController.swift in Sources */,
 				F990A869286F663F00159819 /* AppDelegate.swift in Sources */,
 				BF7CEF832CB7DA4C00A20F77 /* CameraController.swift in Sources */,
-				BF7CEF852CB7DB7900A20F77 /* App.swift in Sources */,
+				BF7CEF852CB7DB7900A20F77 /* AppView.swift in Sources */,
 				F990A88B287047FE00159819 /* Config.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

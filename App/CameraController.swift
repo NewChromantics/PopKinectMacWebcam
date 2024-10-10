@@ -279,14 +279,33 @@ class CameraController : NSObject
 		}
 	}
 	
-	func registerForDeviceNotifications() {
-		NotificationCenter.default.addObserver(forName: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil, queue: nil) { (notif) -> Void in
-			// when the user click "activate", we will receive a notification
-			// we can then try to connect to our "Sample Camera" (if not already connected to)
-			if self.sourceStream == nil {
-				self.connectToCamera()
-			}
+	func OnNewCameraDeviceConnected(notification:Notification)
+	{
+		if ( notification.name != NSNotification.Name.AVCaptureDeviceWasConnected )
+		{
+			return
 		}
+
+		//	gr: Im not sure how to get any more info out of this Notification type - what can i cast .object to?
+		let device = notification.object as! AVCaptureDevice?
+		var DeviceName = "null"
+		if let device
+		{
+			let DeviceType = type(of:device)
+			//let DeviceType = device.deviceType
+			DeviceName = "\(device.localizedName) (\(DeviceType)) [\(device.uniqueID)]"
+		}
+		//showMessage("New camera device connected; \(notification.description)")
+		showMessage("New camera device connected; \(DeviceName)")
+		if self.sourceStream == nil
+		{
+			//self.connectToCamera()
+		}
+	}
+	
+	func registerForDeviceNotifications()
+	{
+		NotificationCenter.default.addObserver(forName: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil, queue: nil, using:OnNewCameraDeviceConnected )
 	}
 	
 	

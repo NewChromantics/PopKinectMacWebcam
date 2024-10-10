@@ -1,10 +1,20 @@
-//
-//  AppDelegate.swift
-//  samplecamera
-//
-//  Created by laurent denoue on 7/1/22.
-//
-/*
+import SwiftUI
+
+
+@main
+struct PopShaderCameraApp: App
+{
+	var body: some Scene
+	{
+		WindowGroup
+		{
+			AppView()
+		}
+		
+	}
+}
+
+ /*
 import Cocoa
 
 
@@ -27,4 +37,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 }
+
 */

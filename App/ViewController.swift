@@ -20,9 +20,6 @@ class ViewController: NSViewController
 	override func viewDidLoad() {
 		super.viewDidLoad()
 
-		cameraControllerInstance = CameraController( log: showMessage )
-		
-		cameraController.registerForDeviceNotifications()
 		let button = NSButton(title: "activate", target: self, action: #selector(activate(_:)))
 		self.view.addSubview(button)
 
@@ -39,6 +36,9 @@ class ViewController: NSViewController
 		needToStreamCaption = fakeLabel("need to stream = ???")
 		needToStreamCaption.frame = needToStreamCaption.frame.offsetBy(dx: button2.frame.maxX + 16, dy: 4)
 		self.view.addSubview(needToStreamCaption)
+		cameraControllerInstance = CameraController( log: showMessage )
+		
+		cameraController.registerForDeviceNotifications()
 
 		cameraController.makeDevicesVisible()
 		cameraController.connectToCamera()

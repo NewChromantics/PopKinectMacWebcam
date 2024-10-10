@@ -10,5 +10,7 @@
 	<array>
 		<string>X52DR36JY2.com.newchromantics.PopShaderCamera</string>
 	</array>
+	<key>com.apple.security.device.camera</key>
+	<true/>
 </dict>
 </plist>
