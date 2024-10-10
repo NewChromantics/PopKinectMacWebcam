@@ -29,6 +29,13 @@ class CameraController : NSObject
 	{
 		print("Allocating new CameraController")
 		self.logFunctor = log
+		
+		super.init()
+		
+		self.registerForDeviceNotifications()
+		self.makeDevicesVisible()
+		self.connectToCamera()
+		self.initTimer()
 	}
 	
 	func showMessage(_ message:String)
