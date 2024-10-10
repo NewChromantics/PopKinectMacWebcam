@@ -39,7 +39,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	
 	
 	//	rendering
-	var clearColor : CGColor = NSColor.cyan.cgColor
+	var clearColor : CGColor = NSColor.black.cgColor
 	
 	var displayMessage = "Waiting for app to send frames :)"
 	var lastError : String? = nil
@@ -388,10 +388,10 @@ class cameraStreamSource: NSObject, CMIOExtensionStreamSource {
 class cameraStreamSink: NSObject, CMIOExtensionStreamSource {
 	
 	private(set) var stream: CMIOExtensionStream!
-	
 	let device: CMIOExtensionDevice
 	private let _streamFormat: CMIOExtensionStreamFormat
-	
+	var client: CMIOExtensionClient?
+
 	init(localizedName: String, streamID: UUID, streamFormat: CMIOExtensionStreamFormat, device: CMIOExtensionDevice) {
 		
 		self.device = device
@@ -414,12 +414,18 @@ class cameraStreamSink: NSObject, CMIOExtensionStreamSource {
 		}
 	}
 	
-	var availableProperties: Set<CMIOExtensionProperty> {
-		
-		return [.streamActiveFormatIndex, .streamFrameDuration, .streamSinkBufferQueueSize, .streamSinkBuffersRequiredForStartup, .streamSinkBufferUnderrunCount, .streamSinkEndOfData]
+	var availableProperties: Set<CMIOExtensionProperty>
+	{
+		return [
+			.streamActiveFormatIndex,
+			.streamFrameDuration,
+			.streamSinkBufferQueueSize,
+			.streamSinkBuffersRequiredForStartup,
+			.streamSinkBufferUnderrunCount,
+			.streamSinkEndOfData
+		]
 	}
 	
-	var client: CMIOExtensionClient?
 	func streamProperties(forProperties properties: Set<CMIOExtensionProperty>) throws -> CMIOExtensionStreamProperties {
 		let streamProperties = CMIOExtensionStreamProperties(dictionary: [:])
 		if properties.contains(.streamActiveFormatIndex) {
