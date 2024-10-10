@@ -13,7 +13,8 @@ let CMIOExtensionPropertyCustomPropertyData_just: CMIOExtensionProperty = CMIOEx
 let kWhiteStripeHeight: Int = 10
 
 
-class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource {
+class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
+{
     
     private(set) var device: CMIOExtensionDevice!
     
@@ -40,11 +41,11 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource {
 	//	rendering
 	var clearColor : CGColor = NSColor.cyan.cgColor
 	
-	var displayMessage = "Hello :)"
+	var displayMessage = "Waiting for app to send frames :)"
 	var lastError : String? = nil
 
     func myStreamingCounter() -> String {
-        return "sc=\(_streamingCounter)"
+        return "SinkConsumerCounter=\(_streamingCounter)"
     }
 
     init(localizedName: String) {
@@ -246,7 +247,8 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource {
 	
 	
 	
-    func consumeBuffer(_ client: CMIOExtensionClient) {
+    func consumeBuffer(_ client: CMIOExtensionClient)
+	{
         if sinkStarted == false {
             return
         }
@@ -280,7 +282,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource {
         }
     }}
 
-// MARK: -
+
 
 class cameraStreamSource: NSObject, CMIOExtensionStreamSource {
     
@@ -330,9 +332,9 @@ class cameraStreamSource: NSObject, CMIOExtensionStreamSource {
             let frameDuration = CMTime(value: 1, timescale: Int32(kFrameRate))
             streamProperties.frameDuration = frameDuration
         }
-        if properties.contains(CMIOExtensionPropertyCustomPropertyData_just) {
+        if properties.contains(CMIOExtensionPropertyCustomPropertyData_just)
+		{
             streamProperties.setPropertyState(CMIOExtensionPropertyState(value: self.just as NSString), forProperty: CMIOExtensionPropertyCustomPropertyData_just)
-
         }
         return streamProperties
     }

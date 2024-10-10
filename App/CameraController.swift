@@ -10,7 +10,6 @@ class CameraController : NSObject
 	var logFunctor : (_ message:String) -> Void
 	
 	private var needToStream: Bool = false
-	private var mirrorCamera: Bool = false
 	private var testImage = NSImage(named: "TestImage")
 	private var activating: Bool = false
 	private var readyToEnqueue = false
@@ -22,9 +21,15 @@ class CameraController : NSObject
 	private var _whiteStripeIsAscending: Bool = false
 	private var overlayMessage: Bool = false
 	private var sequenceNumber = 0
-	private var timer: Timer?
-	private var propTimer: Timer?
+	private var SendImageTimer: Timer?
+	private var ReadPropertyTimer: Timer?
+	var SendImageIntervalSecs = 1/30.0
+	var ReadPropertyIntervalSecs = 2.0
 
+	var sourceStream: CMIOStreamID?
+ var sinkStream: CMIOStreamID?
+ var sinkQueue: CMSimpleQueue?
+	
 	init(log: @escaping (_ message:String)->())
 	{
 		print("Allocating new CameraController")
@@ -84,39 +89,49 @@ class CameraController : NSObject
 	 }
 	 return extensionBundle
  }
- 
- func getJustProperty(streamId: CMIOStreamID) -> String? {
-	 let selector = FourCharCode("just")
-	 var address = CMIOObjectPropertyAddress(selector, .global, .main)
-	 let exists = CMIOObjectHasProperty(streamId, &address)
-	 if exists {
-		 var dataSize: UInt32 = 0
-		 var dataUsed: UInt32 = 0
-		 CMIOObjectGetPropertyDataSize(streamId, &address, 0, nil, &dataSize)
-		 var name: CFString = "" as NSString
-		 CMIOObjectGetPropertyData(streamId, &address, 0, nil, dataSize, &dataUsed, &name);
-		 return name as String
-	 } else {
-		 return nil
-	 }
- }
 
- func setJustProperty(streamId: CMIOStreamID, newValue: String) {
-	 let selector = FourCharCode("just")
-	 var address = CMIOObjectPropertyAddress(selector, .global, .main)
-	 let exists = CMIOObjectHasProperty(streamId, &address)
-	 if exists {
-		 var settable: DarwinBoolean = false
-		 CMIOObjectIsPropertySettable(streamId,&address,&settable)
-		 if settable == false {
-			 return
-		 }
-		 var dataSize: UInt32 = 0
-		 CMIOObjectGetPropertyDataSize(streamId, &address, 0, nil, &dataSize)
-		 var newName: CFString = newValue as NSString
-		 CMIOObjectSetPropertyData(streamId, &address, 0, nil, dataSize, &newName)
-	 }
- }
+	func getProperty(streamId: CMIOStreamID,key:String) throws -> String
+	{
+		let selector = FourCharCode(key)
+		var address = CMIOObjectPropertyAddress(selector, .global, .main)
+		let exists = CMIOObjectHasProperty(streamId, &address)
+		if ( !exists )
+		{
+			throw RuntimeError("Missing property \(key)")
+		}
+
+		var dataSize: UInt32 = 0
+		var dataUsed: UInt32 = 0
+		CMIOObjectGetPropertyDataSize(streamId, &address, 0, nil, &dataSize)
+		var name: CFString = "" as NSString
+		CMIOObjectGetPropertyData(streamId, &address, 0, nil, dataSize, &dataUsed, &name);
+		return name as String
+	}
+
+	func setProperty(streamId: CMIOStreamID, newValue: String, key: String) throws
+	{
+		let selector = FourCharCode(key)
+		var address = CMIOObjectPropertyAddress(selector, .global, .main)
+		let exists = CMIOObjectHasProperty(streamId, &address)
+		if ( !exists )
+		{
+			throw RuntimeError("No such property \(key)")
+		}
+	 
+		var IsWritable : DarwinBoolean = false
+		CMIOObjectIsPropertySettable(streamId,&address,&IsWritable)
+		if ( IsWritable == false )
+		{
+			throw RuntimeError("Property \(key) is not Settable")
+		}
+		
+		//	write string into the data
+		var dataSize: UInt32 = 0
+		CMIOObjectGetPropertyDataSize(streamId, &address, 0, nil, &dataSize)
+		var newName: CFString = newValue as NSString
+		//var value : UnsafePointer = (newValue as NSString).utf8String!
+		CMIOObjectSetPropertyData(streamId, &address, 0, nil, dataSize, &newName )
+	}
 
  func makeDevicesVisible(){
 	 var prop = CMIOObjectPropertyAddress(
@@ -129,9 +144,6 @@ class CameraController : NSObject
 	 CMIOObjectSetPropertyData(CMIOObjectID(kCMIOObjectSystemObject), &prop, zero, nil, dataSize, &allow)
  }
 
- var sourceStream: CMIOStreamID?
- var sinkStream: CMIOStreamID?
- var sinkQueue: CMSimpleQueue?
  
  func initSink(deviceId: CMIODeviceID, sinkStream: CMIOStreamID) {
 	 let dims = CMVideoDimensions(width: fixedCamWidth, height: fixedCamHeight)
@@ -154,10 +166,11 @@ class CameraController : NSObject
 	 // see https://stackoverflow.com/questions/53065186/crash-when-accessing-refconunsafemutablerawpointer-inside-cgeventtap-callback
 	 //let pointerRef = UnsafeMutableRawPointer(Unmanaged.passRetained(self).toOpaque())
 	 let pointerRef = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
-	 let result = CMIOStreamCopyBufferQueue(sinkStream, {
-		 (sinkStream: CMIOStreamID, buf: UnsafeMutableRawPointer?, refcon: UnsafeMutableRawPointer?) in
-		 let sender = Unmanaged<ViewController>.fromOpaque(refcon!).takeUnretainedValue()
-		 sender.cameraController.readyToEnqueue = true
+	 let result = CMIOStreamCopyBufferQueue(sinkStream,
+											{
+		(sinkStream: CMIOStreamID, buf: UnsafeMutableRawPointer?, refcon: UnsafeMutableRawPointer?) in
+		 let sender = Unmanaged<CameraController>.fromOpaque(refcon!).takeUnretainedValue()
+		sender.readyToEnqueue = true
 	 },pointerRef,pointerQueue)
 	 if result != 0 {
 		 showMessage("error starting sink")
@@ -243,13 +256,14 @@ class CameraController : NSObject
 	
 	func initTimer()
 	{
-		timer?.invalidate()
-		timer = Timer.scheduledTimer(timeInterval: 1/30.0, target: self, selector: #selector(fireTimer), userInfo: nil, repeats: true)
-		propTimer?.invalidate()
-		propTimer = Timer.scheduledTimer(timeInterval: 2.0, target: self, selector: #selector(propertyTimer), userInfo: nil, repeats: true)
+		SendImageTimer?.invalidate()
+		SendImageTimer = Timer.scheduledTimer(timeInterval: SendImageIntervalSecs, target: self, selector: #selector(OnSendImageTimerTick), userInfo: nil, repeats: true)
+		
+		ReadPropertyTimer?.invalidate()
+		ReadPropertyTimer = Timer.scheduledTimer(timeInterval: ReadPropertyIntervalSecs, target: self, selector: #selector(OnPropertyTimerTick), userInfo: nil, repeats: true)
 	}
 	
-	@objc func fireTimer() {
+	@objc func OnSendImageTimerTick() {
 		if needToStream {
 			if (enqueued == false || readyToEnqueue == true), let queue = self.sinkQueue {
 				enqueued = true
@@ -261,21 +275,32 @@ class CameraController : NSObject
 		}
 	}
 	
+	func OnError(_ message:String)
+	{
+		showMessage("Error: \(message)")
+	}
 	
-	@objc func propertyTimer() {
-		if let sourceStream = sourceStream {
-			self.setJustProperty(streamId: sourceStream, newValue: "random")
-			let just = self.getJustProperty(streamId: sourceStream)
-			if let just = just {
-				if just == "sc=1" {
+	@objc func OnPropertyTimerTick()
+	{
+		if let sourceStream = sourceStream
+		{
+			//	clear the SinkCounter property
+			//	then re-read it
+			do
+			{
+				try self.setProperty(streamId: sourceStream, newValue: "random", key:"just")
+				let just = try self.getProperty(streamId: sourceStream, key:"just")
+
+				if just == "SinkConsumerCounter=1" {
 					needToStream = true
 				} else {
 					needToStream = false
 				}
 			}
-			
-			//gr: callback to ui, or dont bother?
-			//needToStreamCaption.stringValue = "need to stream = \(needToStream)"
+			catch let error
+			{
+				OnError( error.localizedDescription )
+			}
 		}
 	}
 	
@@ -361,10 +386,6 @@ class CameraController : NSObject
 									   bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue)
 			{
 				context.interpolationQuality = .low
-				if mirrorCamera {
-					context.translateBy(x: CGFloat(width), y: 0.0)
-					context.scaleBy(x: -1.0, y: 1.0)
-				}
 				context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
 			}
 			CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
