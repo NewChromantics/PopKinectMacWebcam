@@ -23,12 +23,12 @@ class CameraController : NSObject
 	private var sequenceNumber = 0
 	private var SendImageTimer: Timer?
 	private var ReadPropertyTimer: Timer?
-	var SendImageIntervalSecs = 1/30.0
+	var SendImageIntervalSecs = 1/CGFloat(kFrameRate)
 	var ReadPropertyIntervalSecs = 2.0
-
+	
 	var sourceStream: CMIOStreamID?
- var sinkStream: CMIOStreamID?
- var sinkQueue: CMSimpleQueue?
+	var sinkStream: CMIOStreamID?
+	var sinkQueue: CMSimpleQueue?
 	
 	init(log: @escaping (_ message:String)->())
 	{
@@ -47,49 +47,49 @@ class CameraController : NSObject
 	{
 		self.logFunctor( message )
 	}
-
-
+	
+	
 	
 	func activateCamera() {
-	 guard let extensionIdentifier = CameraController._extensionBundle().bundleIdentifier else {
-		 return
-	 }
-	 self.activating = true
-	 let activationRequest = OSSystemExtensionRequest.activationRequest(forExtensionWithIdentifier: extensionIdentifier, queue: .main)
-	 activationRequest.delegate = self
-	 OSSystemExtensionManager.shared.submitRequest(activationRequest)
- }
- 
- func deactivateCamera() {
-	 guard let extensionIdentifier = CameraController._extensionBundle().bundleIdentifier else {
-		 return
-	 }
-	 self.activating = false
-	 let deactivationRequest = OSSystemExtensionRequest.deactivationRequest(forExtensionWithIdentifier: extensionIdentifier, queue: .main)
-	 deactivationRequest.delegate = self
-	 OSSystemExtensionManager.shared.submitRequest(deactivationRequest)
- }
- 
- private class func _extensionBundle() -> Bundle {
-	 let extensionsDirectoryURL = URL(fileURLWithPath: "Contents/Library/SystemExtensions", relativeTo: Bundle.main.bundleURL)
-	 let extensionURLs: [URL]
-	 do {
-		 extensionURLs = try FileManager.default.contentsOfDirectory(at: extensionsDirectoryURL,
-																	 includingPropertiesForKeys: nil,
-																	 options: .skipsHiddenFiles)
-	 } catch let error {
-		 fatalError("Failed to get the contents of \(extensionsDirectoryURL.absoluteString): \(error.localizedDescription)")
-	 }
-	 
-	 guard let extensionURL = extensionURLs.first else {
-		 fatalError("Failed to find any system extensions")
-	 }
-	 guard let extensionBundle = Bundle(url: extensionURL) else {
-		 fatalError("Failed to find any system extensions")
-	 }
-	 return extensionBundle
- }
-
+		guard let extensionIdentifier = CameraController._extensionBundle().bundleIdentifier else {
+			return
+		}
+		self.activating = true
+		let activationRequest = OSSystemExtensionRequest.activationRequest(forExtensionWithIdentifier: extensionIdentifier, queue: .main)
+		activationRequest.delegate = self
+		OSSystemExtensionManager.shared.submitRequest(activationRequest)
+	}
+	
+	func deactivateCamera() {
+		guard let extensionIdentifier = CameraController._extensionBundle().bundleIdentifier else {
+			return
+		}
+		self.activating = false
+		let deactivationRequest = OSSystemExtensionRequest.deactivationRequest(forExtensionWithIdentifier: extensionIdentifier, queue: .main)
+		deactivationRequest.delegate = self
+		OSSystemExtensionManager.shared.submitRequest(deactivationRequest)
+	}
+	
+	private class func _extensionBundle() -> Bundle {
+		let extensionsDirectoryURL = URL(fileURLWithPath: "Contents/Library/SystemExtensions", relativeTo: Bundle.main.bundleURL)
+		let extensionURLs: [URL]
+		do {
+			extensionURLs = try FileManager.default.contentsOfDirectory(at: extensionsDirectoryURL,
+																		includingPropertiesForKeys: nil,
+																		options: .skipsHiddenFiles)
+		} catch let error {
+			fatalError("Failed to get the contents of \(extensionsDirectoryURL.absoluteString): \(error.localizedDescription)")
+		}
+		
+		guard let extensionURL = extensionURLs.first else {
+			fatalError("Failed to find any system extensions")
+		}
+		guard let extensionBundle = Bundle(url: extensionURL) else {
+			fatalError("Failed to find any system extensions")
+		}
+		return extensionBundle
+	}
+	
 	func getProperty(streamId: CMIOStreamID,key:String) throws -> String
 	{
 		let selector = FourCharCode(key)
@@ -99,7 +99,7 @@ class CameraController : NSObject
 		{
 			throw RuntimeError("Missing property \(key)")
 		}
-
+		
 		var dataSize: UInt32 = 0
 		var dataUsed: UInt32 = 0
 		CMIOObjectGetPropertyDataSize(streamId, &address, 0, nil, &dataSize)
@@ -107,7 +107,7 @@ class CameraController : NSObject
 		CMIOObjectGetPropertyData(streamId, &address, 0, nil, dataSize, &dataUsed, &name);
 		return name as String
 	}
-
+	
 	func setProperty(streamId: CMIOStreamID, newValue: String, key: String) throws
 	{
 		let selector = FourCharCode(key)
@@ -117,7 +117,7 @@ class CameraController : NSObject
 		{
 			throw RuntimeError("No such property \(key)")
 		}
-	 
+		
 		var IsWritable : DarwinBoolean = false
 		CMIOObjectIsPropertySettable(streamId,&address,&IsWritable)
 		if ( IsWritable == false )
@@ -132,110 +132,111 @@ class CameraController : NSObject
 		//var value : UnsafePointer = (newValue as NSString).utf8String!
 		CMIOObjectSetPropertyData(streamId, &address, 0, nil, dataSize, &newName )
 	}
-
- func makeDevicesVisible(){
-	 var prop = CMIOObjectPropertyAddress(
-		 mSelector: CMIOObjectPropertySelector(kCMIOHardwarePropertyAllowScreenCaptureDevices),
-		 mScope: CMIOObjectPropertyScope(kCMIOObjectPropertyScopeGlobal),
-		 mElement: CMIOObjectPropertyElement(kCMIOObjectPropertyElementMain))
-	 var allow : UInt32 = 1
-	 let dataSize : UInt32 = 4
-	 let zero : UInt32 = 0
-	 CMIOObjectSetPropertyData(CMIOObjectID(kCMIOObjectSystemObject), &prop, zero, nil, dataSize, &allow)
- }
-
- 
- func initSink(deviceId: CMIODeviceID, sinkStream: CMIOStreamID) {
-	 let dims = CMVideoDimensions(width: fixedCamWidth, height: fixedCamHeight)
-	 CMVideoFormatDescriptionCreate(
-		 allocator: kCFAllocatorDefault,
-		 codecType: kCVPixelFormatType_32BGRA,
-		 width: dims.width, height: dims.height, extensions: nil, formatDescriptionOut: &_videoDescription)
-	 
-	 var pixelBufferAttributes: NSDictionary!
+	
+	func makeDevicesVisible(){
+		var prop = CMIOObjectPropertyAddress(
+			mSelector: CMIOObjectPropertySelector(kCMIOHardwarePropertyAllowScreenCaptureDevices),
+			mScope: CMIOObjectPropertyScope(kCMIOObjectPropertyScopeGlobal),
+			mElement: CMIOObjectPropertyElement(kCMIOObjectPropertyElementMain))
+		var allow : UInt32 = 1
+		let dataSize : UInt32 = 4
+		let zero : UInt32 = 0
+		CMIOObjectSetPropertyData(CMIOObjectID(kCMIOObjectSystemObject), &prop, zero, nil, dataSize, &allow)
+	}
+	
+	
+	func initSink(deviceId: CMIODeviceID, sinkStream: CMIOStreamID)
+	{
+		let dims = CMVideoDimensions(width: fixedCamWidth, height: fixedCamHeight)
+		CMVideoFormatDescriptionCreate(
+			allocator: kCFAllocatorDefault,
+			codecType: kCVPixelFormatType_32BGRA,
+			width: dims.width, height: dims.height, extensions: nil, formatDescriptionOut: &_videoDescription)
+		
+		var pixelBufferAttributes: NSDictionary!
 		pixelBufferAttributes = [
-			 kCVPixelBufferWidthKey: dims.width,
-			 kCVPixelBufferHeightKey: dims.height,
-			 kCVPixelBufferPixelFormatTypeKey: _videoDescription.mediaSubType,
-			 kCVPixelBufferIOSurfacePropertiesKey: [:]
-		 ]
-	 
-	 CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, pixelBufferAttributes, &_bufferPool)
-
-	 let pointerQueue = UnsafeMutablePointer<Unmanaged<CMSimpleQueue>?>.allocate(capacity: 1)
-	 // see https://stackoverflow.com/questions/53065186/crash-when-accessing-refconunsafemutablerawpointer-inside-cgeventtap-callback
-	 //let pointerRef = UnsafeMutableRawPointer(Unmanaged.passRetained(self).toOpaque())
-	 let pointerRef = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
-	 let result = CMIOStreamCopyBufferQueue(sinkStream,
-											{
-		(sinkStream: CMIOStreamID, buf: UnsafeMutableRawPointer?, refcon: UnsafeMutableRawPointer?) in
-		 let sender = Unmanaged<CameraController>.fromOpaque(refcon!).takeUnretainedValue()
-		sender.readyToEnqueue = true
-	 },pointerRef,pointerQueue)
-	 if result != 0 {
-		 showMessage("error starting sink")
-	 } else {
-		 if let queue = pointerQueue.pointee {
-			 self.sinkQueue = queue.takeUnretainedValue()
-		 }
-		 let resultStart = CMIODeviceStartStream(deviceId, sinkStream) == 0
-		 if resultStart {
-			 showMessage("initSink started")
-		 } else {
-			 showMessage("initSink error startstream")
-		 }
-	 }
- }
-
- func getDevice(name: String) -> AVCaptureDevice? {
-	 print("getDevice name=",name)
-	 var devices: [AVCaptureDevice]?
-	 if #available(macOS 10.15, *) {
-		 let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.externalUnknown],
-																 mediaType: .video,
-																 position: .unspecified)
-		 devices = discoverySession.devices
-	 } else {
-		 // Fallback on earlier versions
-		 devices = AVCaptureDevice.devices(for: .video)
-	 }
-	 guard let devices = devices else { return nil }
-	 return devices.first { $0.localizedName == name}
- }
-
- func getCMIODevice(uid: String) -> CMIOObjectID? {
-	 var dataSize: UInt32 = 0
-	 var devices = [CMIOObjectID]()
-	 var dataUsed: UInt32 = 0
-	 var opa = CMIOObjectPropertyAddress(CMIOObjectPropertySelector(kCMIOHardwarePropertyDevices), .global, .main)
-	 CMIOObjectGetPropertyDataSize(CMIOObjectPropertySelector(kCMIOObjectSystemObject), &opa, 0, nil, &dataSize);
-	 let nDevices = Int(dataSize) / MemoryLayout<CMIOObjectID>.size
-	 devices = [CMIOObjectID](repeating: 0, count: Int(nDevices))
-	 CMIOObjectGetPropertyData(CMIOObjectPropertySelector(kCMIOObjectSystemObject), &opa, 0, nil, dataSize, &dataUsed, &devices);
-	 for deviceObjectID in devices {
-		 opa.mSelector = CMIOObjectPropertySelector(kCMIODevicePropertyDeviceUID)
-		 CMIOObjectGetPropertyDataSize(deviceObjectID, &opa, 0, nil, &dataSize)
-		 var name: CFString = "" as NSString
-		 //CMIOObjectGetPropertyData(deviceObjectID, &opa, 0, nil, UInt32(MemoryLayout<CFString>.size), &dataSize, &name);
-		 CMIOObjectGetPropertyData(deviceObjectID, &opa, 0, nil, dataSize, &dataUsed, &name);
-		 if String(name) == uid {
-			 return deviceObjectID
-		 }
-	 }
-	 return nil
- }
-
- func getInputStreams(deviceId: CMIODeviceID) -> [CMIOStreamID]
- {
-	 var dataSize: UInt32 = 0
-	 var dataUsed: UInt32 = 0
-	 var opa = CMIOObjectPropertyAddress(CMIOObjectPropertySelector(kCMIODevicePropertyStreams), .global, .main)
-	 CMIOObjectGetPropertyDataSize(deviceId, &opa, 0, nil, &dataSize);
-	 let numberStreams = Int(dataSize) / MemoryLayout<CMIOStreamID>.size
-	 var streamIds = [CMIOStreamID](repeating: 0, count: numberStreams)
-	 CMIOObjectGetPropertyData(deviceId, &opa, 0, nil, dataSize, &dataUsed, &streamIds)
-	 return streamIds
- }
+			kCVPixelBufferWidthKey: dims.width,
+			kCVPixelBufferHeightKey: dims.height,
+			kCVPixelBufferPixelFormatTypeKey: _videoDescription.mediaSubType,
+			kCVPixelBufferIOSurfacePropertiesKey: [:]
+		]
+		
+		CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, pixelBufferAttributes, &_bufferPool)
+		
+		let pointerQueue = UnsafeMutablePointer<Unmanaged<CMSimpleQueue>?>.allocate(capacity: 1)
+		// see https://stackoverflow.com/questions/53065186/crash-when-accessing-refconunsafemutablerawpointer-inside-cgeventtap-callback
+		//let pointerRef = UnsafeMutableRawPointer(Unmanaged.passRetained(self).toOpaque())
+		let pointerRef = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+		let result = CMIOStreamCopyBufferQueue(sinkStream,
+											   {
+			(sinkStream: CMIOStreamID, buf: UnsafeMutableRawPointer?, refcon: UnsafeMutableRawPointer?) in
+			let sender = Unmanaged<CameraController>.fromOpaque(refcon!).takeUnretainedValue()
+			sender.readyToEnqueue = true
+		},pointerRef,pointerQueue)
+		if result != 0 {
+			showMessage("error starting sink")
+		} else {
+			if let queue = pointerQueue.pointee {
+				self.sinkQueue = queue.takeUnretainedValue()
+			}
+			let resultStart = CMIODeviceStartStream(deviceId, sinkStream) == 0
+			if resultStart {
+				showMessage("initSink started")
+			} else {
+				showMessage("initSink error startstream")
+			}
+		}
+	}
+	
+	func getDevice(name: String) -> AVCaptureDevice? {
+		print("getDevice name=",name)
+		var devices: [AVCaptureDevice]?
+		if #available(macOS 10.15, *) {
+			let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.externalUnknown],
+																	mediaType: .video,
+																	position: .unspecified)
+			devices = discoverySession.devices
+		} else {
+			// Fallback on earlier versions
+			devices = AVCaptureDevice.devices(for: .video)
+		}
+		guard let devices = devices else { return nil }
+		return devices.first { $0.localizedName == name}
+	}
+	
+	func getCMIODevice(uid: String) -> CMIOObjectID? {
+		var dataSize: UInt32 = 0
+		var devices = [CMIOObjectID]()
+		var dataUsed: UInt32 = 0
+		var opa = CMIOObjectPropertyAddress(CMIOObjectPropertySelector(kCMIOHardwarePropertyDevices), .global, .main)
+		CMIOObjectGetPropertyDataSize(CMIOObjectPropertySelector(kCMIOObjectSystemObject), &opa, 0, nil, &dataSize);
+		let nDevices = Int(dataSize) / MemoryLayout<CMIOObjectID>.size
+		devices = [CMIOObjectID](repeating: 0, count: Int(nDevices))
+		CMIOObjectGetPropertyData(CMIOObjectPropertySelector(kCMIOObjectSystemObject), &opa, 0, nil, dataSize, &dataUsed, &devices);
+		for deviceObjectID in devices {
+			opa.mSelector = CMIOObjectPropertySelector(kCMIODevicePropertyDeviceUID)
+			CMIOObjectGetPropertyDataSize(deviceObjectID, &opa, 0, nil, &dataSize)
+			var name: CFString = "" as NSString
+			//CMIOObjectGetPropertyData(deviceObjectID, &opa, 0, nil, UInt32(MemoryLayout<CFString>.size), &dataSize, &name);
+			CMIOObjectGetPropertyData(deviceObjectID, &opa, 0, nil, dataSize, &dataUsed, &name);
+			if String(name) == uid {
+				return deviceObjectID
+			}
+		}
+		return nil
+	}
+	
+	func getInputStreams(deviceId: CMIODeviceID) -> [CMIOStreamID]
+	{
+		var dataSize: UInt32 = 0
+		var dataUsed: UInt32 = 0
+		var opa = CMIOObjectPropertyAddress(CMIOObjectPropertySelector(kCMIODevicePropertyStreams), .global, .main)
+		CMIOObjectGetPropertyDataSize(deviceId, &opa, 0, nil, &dataSize);
+		let numberStreams = Int(dataSize) / MemoryLayout<CMIOStreamID>.size
+		var streamIds = [CMIOStreamID](repeating: 0, count: numberStreams)
+		CMIOObjectGetPropertyData(deviceId, &opa, 0, nil, dataSize, &dataUsed, &streamIds)
+		return streamIds
+	}
 	func connectToCamera()
 	{
 		if let device = getDevice(name: cameraName), let deviceObjectId = getCMIODevice(uid: device.uniqueID) {
@@ -290,7 +291,7 @@ class CameraController : NSObject
 			{
 				try self.setProperty(streamId: sourceStream, newValue: "random", key:"just")
 				let just = try self.getProperty(streamId: sourceStream, key:"just")
-
+				
 				if just == "SinkConsumerCounter=1" {
 					needToStream = true
 				} else {
@@ -310,7 +311,7 @@ class CameraController : NSObject
 		{
 			return
 		}
-
+		
 		//	gr: Im not sure how to get any more info out of this Notification type - what can i cast .object to?
 		let device = notification.object as! AVCaptureDevice?
 		var DeviceName = "null"
@@ -348,28 +349,28 @@ class CameraController : NSObject
 			CVPixelBufferLockBaseAddress(pixelBuffer, [])
 			
 			/*var bufferPtr = CVPixelBufferGetBaseAddress(pixelBuffer)!
-			let width = CVPixelBufferGetWidth(pixelBuffer)
-			let height = CVPixelBufferGetHeight(pixelBuffer)
-			let rowBytes = CVPixelBufferGetBytesPerRow(pixelBuffer)
-			memset(bufferPtr, 0, rowBytes * height)
-			
-			let whiteStripeStartRow = self._whiteStripeStartRow
-			if self._whiteStripeIsAscending {
-				self._whiteStripeStartRow = whiteStripeStartRow - 1
-				self._whiteStripeIsAscending = self._whiteStripeStartRow > 0
-			}
-			else {
-				self._whiteStripeStartRow = whiteStripeStartRow + 1
-				self._whiteStripeIsAscending = self._whiteStripeStartRow >= (height - kWhiteStripeHeight)
-			}
-			bufferPtr += rowBytes * Int(whiteStripeStartRow)
-			for _ in 0..<kWhiteStripeHeight {
-				for _ in 0..<width {
-					var white: UInt32 = 0xFFFFFFFF
-					memcpy(bufferPtr, &white, MemoryLayout.size(ofValue: white))
-					bufferPtr += MemoryLayout.size(ofValue: white)
-				}
-			}*/
+			 let width = CVPixelBufferGetWidth(pixelBuffer)
+			 let height = CVPixelBufferGetHeight(pixelBuffer)
+			 let rowBytes = CVPixelBufferGetBytesPerRow(pixelBuffer)
+			 memset(bufferPtr, 0, rowBytes * height)
+			 
+			 let whiteStripeStartRow = self._whiteStripeStartRow
+			 if self._whiteStripeIsAscending {
+			 self._whiteStripeStartRow = whiteStripeStartRow - 1
+			 self._whiteStripeIsAscending = self._whiteStripeStartRow > 0
+			 }
+			 else {
+			 self._whiteStripeStartRow = whiteStripeStartRow + 1
+			 self._whiteStripeIsAscending = self._whiteStripeStartRow >= (height - kWhiteStripeHeight)
+			 }
+			 bufferPtr += rowBytes * Int(whiteStripeStartRow)
+			 for _ in 0..<kWhiteStripeHeight {
+			 for _ in 0..<width {
+			 var white: UInt32 = 0xFFFFFFFF
+			 memcpy(bufferPtr, &white, MemoryLayout.size(ofValue: white))
+			 bufferPtr += MemoryLayout.size(ofValue: white)
+			 }
+			 }*/
 			let pixelData = CVPixelBufferGetBaseAddress(pixelBuffer)
 			let width = CVPixelBufferGetWidth(pixelBuffer)
 			let height = CVPixelBufferGetHeight(pixelBuffer)
@@ -377,12 +378,12 @@ class CameraController : NSObject
 			// optimizing context: interpolationQuality and bitmapInfo
 			// see https://stackoverflow.com/questions/7560979/cgcontextdrawimage-is-extremely-slow-after-large-uiimage-drawn-into-it
 			if let context = CGContext(data: pixelData,
-									  width: width,
-									  height: height,
-									  bitsPerComponent: 8,
-									  bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
-									  space: rgbColorSpace,
-									  //bitmapInfo: UInt32(CGImageAlphaInfo.noneSkipFirst.rawValue) | UInt32(CGImageByteOrderInfo.order32Little.rawValue))
+									   width: width,
+									   height: height,
+									   bitsPerComponent: 8,
+									   bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
+									   space: rgbColorSpace,
+									   //bitmapInfo: UInt32(CGImageAlphaInfo.noneSkipFirst.rawValue) | UInt32(CGImageByteOrderInfo.order32Little.rawValue))
 									   bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue)
 			{
 				context.interpolationQuality = .low
@@ -427,7 +428,7 @@ extension CameraController:OSSystemExtensionRequestDelegate
 	{
 		showMessage("Extension needs user approval")
 	}
-
+	
 	func request(_ request: OSSystemExtensionRequest, didFinishWithResult result: OSSystemExtensionRequest.Result) {
 		showMessage("Request finished with result: \(result.rawValue)")
 		if result == .completed {
@@ -444,7 +445,7 @@ extension CameraController:OSSystemExtensionRequestDelegate
 			}
 		}
 	}
-
+	
 	func request(_ request: OSSystemExtensionRequest, didFailWithError error: Error) {
 		if self.activating {
 			showMessage("Failed to activate the camera - \(error.localizedDescription)")
@@ -529,4 +530,5 @@ public extension CMIOObjectPropertyElement {
 	/// The wildcard value for CMIOObjectPropertyElements.
 	static let anyElement = CMIOObjectPropertyElement(kCMIOObjectPropertyElementWildcard)
 }
+
 
