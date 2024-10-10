@@ -12,6 +12,12 @@ Run Extensions outside system dir and host app outside of `/Applications`
 - Enable unsigned system extensions
 	- `systemextensionsctl developer on`
 
+Debugging Extension
+-------------------------
+- Run xcode as root `sudo /Applications/Xcode.app/etc etc`
+- Attach to a `com.newchromantic....` process (may auto detect!)
+- Run a camera app which instances a camera device
+
 Troubleshooting
 ------------------
 - Upon activation `extension category returned error`
