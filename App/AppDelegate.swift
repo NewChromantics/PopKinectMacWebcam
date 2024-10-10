@@ -4,8 +4,9 @@
 //
 //  Created by laurent denoue on 7/1/22.
 //
-
+/*
 import Cocoa
+
 
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -26,4 +27,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 }
-
+*/

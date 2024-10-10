@@ -27,6 +27,7 @@ class CameraController : NSObject
 
 	init(log: @escaping (_ message:String)->())
 	{
+		print("Allocating new CameraController")
 		self.logFunctor = log
 	}
 	
