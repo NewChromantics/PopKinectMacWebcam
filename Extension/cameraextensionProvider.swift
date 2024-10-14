@@ -389,16 +389,23 @@ class cameraProviderSource: NSObject, CMIOExtensionProviderSource {
 	
 	private(set) var provider: CMIOExtensionProvider!
 	
-	private var deviceSource: cameraDeviceSource!
+	var deviceSource: cameraDeviceSource!
+	var device2 : cameraDeviceSource!
 	
-	init(clientQueue: DispatchQueue?) {
+	init(clientQueue: DispatchQueue?)
+	{
 		super.init()
 		provider = CMIOExtensionProvider(source: self, clientQueue: clientQueue)
 		deviceSource = cameraDeviceSource(localizedName: cameraName)
-		
-		do {
+		device2 = cameraDeviceSource(localizedName: "Camera2")
+
+		do
+		{
 			try provider.addDevice(deviceSource.device)
-		} catch let error {
+			try provider.addDevice(device2.device)
+		}
+		catch let error
+		{
 			fatalError("Failed to add device: \(error.localizedDescription)")
 		}
 	}
