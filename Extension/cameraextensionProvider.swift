@@ -4,11 +4,7 @@ import IOKit.audio
 import os.log
 import Cocoa
 
-let textColor = NSColor.white
-let fontSize = 24.0
-let textFont = NSFont.systemFont(ofSize: fontSize)
 let CMIOExtensionPropertyCustomPropertyData_just: CMIOExtensionProperty = CMIOExtensionProperty(rawValue: "4cc_just_glob_0000")
-let kWhiteStripeHeight: Int = 10
 
 
 class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
@@ -21,7 +17,9 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	private var _streamingSinkCounter: UInt32 = 0
 	
 	var frameSource : FrameSource
-	
+	var sinkStarted = false
+	var lastTimingInfo = CMSampleTimingInfo()
+
 	
 	func myStreamingCounter() -> String {
 		return "SinkConsumerCounter=\(_streamingCounter)"
@@ -85,7 +83,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 			do
 			{
 				let frame = try await frameSource.PopNewFrame()
-
+				
 				var sbuf: CMSampleBuffer!
 				var timingInfo = CMSampleTimingInfo()
 				timingInfo.presentationTimeStamp = frame.time
@@ -142,8 +140,6 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		}
 	}
 	
-	var sinkStarted = false
-	var lastTimingInfo = CMSampleTimingInfo()
 	
 	
 	
@@ -152,11 +148,15 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		if sinkStarted == false {
 			return
 		}
-		self._streamSink.stream.consumeSampleBuffer(from: client) { sbuf, seq, discontinuity, hasMoreSampleBuffers, err in
-			if sbuf != nil {
+		self._streamSink.stream.consumeSampleBuffer(from: client)
+		{
+			sbuf, seq, discontinuity, hasMoreSampleBuffers, err in
+			if sbuf != nil
+			{
 				self.lastTimingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
 				let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds: UInt64(self.lastTimingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-				if self._streamingCounter > 0 {
+				if self._streamingCounter > 0
+				{
 					self._streamSource.stream.send(sbuf!, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf!.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
 				}
 				self._streamSink.stream.notifyScheduledOutputChanged(output)
@@ -180,7 +180,8 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		else {
 			_streamingSinkCounter = 0
 		}
-	}}
+	}
+}
 
 
 

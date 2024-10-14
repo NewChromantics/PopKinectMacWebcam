@@ -40,7 +40,10 @@ class DebugFrameSource : FrameSource
 	var warningText : String? = nil
 	var clearColor : CGColor = NSColor.black.cgColor
 	let paragraphStyle = NSMutableParagraphStyle()
-	let textFontAttributes: [NSAttributedString.Key : Any]
+	var textFontAttributes: [NSAttributedString.Key : Any]
+	let textColor = NSColor.white
+	let fontSize = 24.0
+	var textFont : NSFont { NSFont.systemFont(ofSize: fontSize)}
 
 	
 	init()
@@ -63,6 +66,8 @@ class DebugFrameSource : FrameSource
 		bufferAuxAttributes = [kCVPixelBufferPoolAllocationThresholdKey: 5]
 
 		paragraphStyle.alignment = NSTextAlignment.center
+		textFontAttributes = [:]
+		
 		textFontAttributes = [
 			NSAttributedString.Key.font: textFont,
 			NSAttributedString.Key.foregroundColor: textColor,
