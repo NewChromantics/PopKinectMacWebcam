@@ -27,7 +27,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	
 	init(localizedName: String) {
 		
-		frameSource = DebugFrameSource()
+		frameSource = DebugFrameSource(clearColour: NSColor.black.cgColor)
 		
 		super.init()
 		let deviceID = UUID()
@@ -258,6 +258,7 @@ class cameraStreamSource: NSObject, CMIOExtensionStreamSource {
 				if let deviceSource = device.source as? cameraDeviceSource {
 					self.just = deviceSource.myStreamingCounter()
 				}
+			
 			}
 		}
 	}
@@ -287,6 +288,10 @@ class cameraStreamSource: NSObject, CMIOExtensionStreamSource {
 		deviceSource.stopStreaming()
 	}
 }
+
+
+
+
 
 class cameraStreamSink: NSObject, CMIOExtensionStreamSource {
 	
@@ -383,30 +388,74 @@ class cameraStreamSink: NSObject, CMIOExtensionStreamSource {
 	}
 }
 
-// MARK: -
 
-class cameraProviderSource: NSObject, CMIOExtensionProviderSource {
-	
+
+class cameraProviderSource: NSObject, CMIOExtensionProviderSource
+{
 	private(set) var provider: CMIOExtensionProvider!
 	
-	var deviceSource: cameraDeviceSource!
-	var device2 : cameraDeviceSource!
+	var devices : [String:KinectDeviceSource] = [:]
+	
+	
 	
 	init(clientQueue: DispatchQueue?)
 	{
 		super.init()
 		provider = CMIOExtensionProvider(source: self, clientQueue: clientQueue)
-		deviceSource = cameraDeviceSource(localizedName: cameraName)
-		device2 = cameraDeviceSource(localizedName: "Camera2")
 
-		do
+		Task
 		{
-			try provider.addDevice(deviceSource.device)
-			try provider.addDevice(device2.device)
+			await WatchForNewDevicesThread()
 		}
-		catch let error
+	}
+	
+	func WatchForNewDevicesThread() async
+	{
+		while ( true )
 		{
-			fatalError("Failed to add device: \(error.localizedDescription)")
+			try! await Task.sleep(for: .seconds(1))
+			do
+			{
+				let Devices = ["Kinect 1","Kinect 2"]
+				OnFoundDevices( Devices )
+			}
+			catch let error
+			{
+			}
+		}
+	}
+	
+	func OnFoundDevice(_ deviceUid:String) throws
+	{
+		func MatchDevice(element:Dictionary<String,KinectDeviceSource>.Element) -> Bool
+		{
+			return element.key == deviceUid
+		}
+		
+		//	already found
+		if ( devices.contains(where: MatchDevice) )
+		{
+			return;
+		}
+		
+		//	make a new device
+		let device = KinectDeviceSource(localizedName: deviceUid)
+		try provider.addDevice(device.device)
+		self.devices[deviceUid] = device
+	}
+	
+	func OnFoundDevices(_ deviceUids:[String])
+	{
+		for deviceUid in deviceUids
+		{
+			do
+			{
+				try OnFoundDevice(deviceUid)
+			}
+			catch let error
+			{
+				fatalError("Failed to add device '\(deviceUid)': \(error.localizedDescription)")
+			}
 		}
 	}
 	

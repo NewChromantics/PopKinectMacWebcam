@@ -46,8 +46,9 @@ class DebugFrameSource : FrameSource
 	var textFont : NSFont { NSFont.systemFont(ofSize: fontSize)}
 
 	
-	init()
+	init(clearColour:CGColor)
 	{
+		self.clearColor = clearColour
 		//let dims = CMVideoDimensions(width: 1920, height: 1080)
 		let dims = CMVideoDimensions(width: self.width, height: self.height)
 		CMVideoFormatDescriptionCreate(
@@ -80,8 +81,7 @@ class DebugFrameSource : FrameSource
 	{
 		//	built in throttle for debug
 		let DelayMs = 1000 / Double(frameRate)
-		let DelayNs : UInt64 = UInt64(DelayMs * 1000000)
-		try await Task.sleep(nanoseconds: DelayNs)
+		try await Task.sleep(for:.milliseconds(DelayMs))
 		
 		var pixelBufferMaybe: CVPixelBuffer?
 		let timestamp = CMClockGetTime(CMClockGetHostTimeClock())
