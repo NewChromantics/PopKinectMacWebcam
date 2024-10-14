@@ -1,4 +1,6 @@
-Virtual camera device for macos that allows you to apply filters over the camera
+Pop Kinect Webcam
+==========================
+- Expose Kinect depth streams as webcams in macos
 
 
 Developement

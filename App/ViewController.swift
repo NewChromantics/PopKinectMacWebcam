@@ -41,7 +41,7 @@ class ViewController: NSViewController
 		cameraController.registerForDeviceNotifications()
 
 		cameraController.makeDevicesVisible()
-		cameraController.connectToCamera()
+		//cameraController.connectToCamera()
 		cameraController.initTimer()
 	}
 

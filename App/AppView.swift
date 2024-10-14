@@ -107,7 +107,7 @@ struct AppView : View
 	{
 		VStack(spacing: 20)
 		{
-			Text("Shader Camera")
+			Text("Pop Kinect Webcam")
 				.font(.title)
 			HStack()
 			{

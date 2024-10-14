@@ -23,7 +23,7 @@ class CameraController : NSObject
 	private var sequenceNumber = 0
 	private var SendImageTimer: Timer?
 	private var ReadPropertyTimer: Timer?
-	var SendImageIntervalSecs = 1/CGFloat(kFrameRate)
+	var SendImageIntervalSecs = 1/CGFloat(60)
 	var ReadPropertyIntervalSecs = 2.0
 	
 	var sourceStream: CMIOStreamID?
@@ -39,7 +39,7 @@ class CameraController : NSObject
 		
 		self.registerForDeviceNotifications()
 		self.makeDevicesVisible()
-		self.connectToCamera()
+		//self.connectToCamera()
 		self.initTimer()
 	}
 	
@@ -145,48 +145,6 @@ class CameraController : NSObject
 	}
 	
 	
-	func initSink(deviceId: CMIODeviceID, sinkStream: CMIOStreamID)
-	{
-		let dims = CMVideoDimensions(width: fixedCamWidth, height: fixedCamHeight)
-		CMVideoFormatDescriptionCreate(
-			allocator: kCFAllocatorDefault,
-			codecType: kCVPixelFormatType_32BGRA,
-			width: dims.width, height: dims.height, extensions: nil, formatDescriptionOut: &_videoDescription)
-		
-		var pixelBufferAttributes: NSDictionary!
-		pixelBufferAttributes = [
-			kCVPixelBufferWidthKey: dims.width,
-			kCVPixelBufferHeightKey: dims.height,
-			kCVPixelBufferPixelFormatTypeKey: _videoDescription.mediaSubType,
-			kCVPixelBufferIOSurfacePropertiesKey: [:]
-		]
-		
-		CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, pixelBufferAttributes, &_bufferPool)
-		
-		let pointerQueue = UnsafeMutablePointer<Unmanaged<CMSimpleQueue>?>.allocate(capacity: 1)
-		// see https://stackoverflow.com/questions/53065186/crash-when-accessing-refconunsafemutablerawpointer-inside-cgeventtap-callback
-		//let pointerRef = UnsafeMutableRawPointer(Unmanaged.passRetained(self).toOpaque())
-		let pointerRef = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
-		let result = CMIOStreamCopyBufferQueue(sinkStream,
-											   {
-			(sinkStream: CMIOStreamID, buf: UnsafeMutableRawPointer?, refcon: UnsafeMutableRawPointer?) in
-			let sender = Unmanaged<CameraController>.fromOpaque(refcon!).takeUnretainedValue()
-			sender.readyToEnqueue = true
-		},pointerRef,pointerQueue)
-		if result != 0 {
-			showMessage("error starting sink")
-		} else {
-			if let queue = pointerQueue.pointee {
-				self.sinkQueue = queue.takeUnretainedValue()
-			}
-			let resultStart = CMIODeviceStartStream(deviceId, sinkStream) == 0
-			if resultStart {
-				showMessage("initSink started")
-			} else {
-				showMessage("initSink error startstream")
-			}
-		}
-	}
 	
 	func getDevice(name: String) -> AVCaptureDevice? {
 		print("getDevice name=",name)
@@ -237,29 +195,10 @@ class CameraController : NSObject
 		CMIOObjectGetPropertyData(deviceId, &opa, 0, nil, dataSize, &dataUsed, &streamIds)
 		return streamIds
 	}
-	func connectToCamera()
-	{
-		if let device = getDevice(name: cameraName), let deviceObjectId = getCMIODevice(uid: device.uniqueID) {
-			let streamIds = getInputStreams(deviceId: deviceObjectId)
-			if streamIds.count == 2
-			{
-				sinkStream = streamIds[1]
-				showMessage("found sink stream")
-				initSink(deviceId: deviceObjectId, sinkStream: streamIds[1])
-			}
-			if let firstStream = streamIds.first
-			{
-				showMessage("found source stream")
-				sourceStream = firstStream
-			}
-		}
-	}
+
 	
 	func initTimer()
 	{
-		SendImageTimer?.invalidate()
-		SendImageTimer = Timer.scheduledTimer(timeInterval: SendImageIntervalSecs, target: self, selector: #selector(OnSendImageTimerTick), userInfo: nil, repeats: true)
-		
 		ReadPropertyTimer?.invalidate()
 		ReadPropertyTimer = Timer.scheduledTimer(timeInterval: ReadPropertyIntervalSecs, target: self, selector: #selector(OnPropertyTimerTick), userInfo: nil, repeats: true)
 	}

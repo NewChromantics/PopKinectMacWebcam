@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BF76118A2CBBFD7400EB4BE1 /* PopCameraDevice_Osx.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BF7611882CBBFD6D00EB4BE1 /* PopCameraDevice_Osx.framework */; };
+		BF76118B2CBBFD7400EB4BE1 /* PopCameraDevice_Osx.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = BF7611882CBBFD6D00EB4BE1 /* PopCameraDevice_Osx.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		BF76118E2CBC0AAB00EB4BE1 /* FrameProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF76118D2CBC0AAB00EB4BE1 /* FrameProvider.swift */; };
 		BF7CEF7E2CB6CB9D00A20F77 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
 		BF7CEF832CB7DA4C00A20F77 /* CameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF822CB7DA4C00A20F77 /* CameraController.swift */; };
 		BF7CEF852CB7DB7900A20F77 /* AppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF842CB7DB7900A20F77 /* AppView.swift */; };
@@ -17,7 +20,7 @@
 		F990A870286F664500159819 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F990A86E286F664500159819 /* Main.storyboard */; };
 		F990A87E286F666500159819 /* cameraextensionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A87D286F666500159819 /* cameraextensionProvider.swift */; };
 		F990A880286F666500159819 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A87F286F666500159819 /* main.swift */; };
-		F990A885286F666500159819 /* com.newchromantics.PopShaderCamera.cameraextension.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = F990A87B286F666500159819 /* com.newchromantics.PopShaderCamera.cameraextension.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F990A885286F666500159819 /* com.newchromantics.PopKinectWebcam.cameraextension.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = F990A87B286F666500159819 /* com.newchromantics.PopKinectWebcam.cameraextension.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F990A88B287047FE00159819 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A88A287047FE00159819 /* Config.swift */; };
 		F990A88C287047FE00159819 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A88A287047FE00159819 /* Config.swift */; };
 /* End PBXBuildFile section */
@@ -33,13 +36,24 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		BF76118C2CBBFD7400EB4BE1 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				BF76118B2CBBFD7400EB4BE1 /* PopCameraDevice_Osx.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F990A889286F666500159819 /* Embed System Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "$(SYSTEM_EXTENSIONS_FOLDER_PATH)";
 			dstSubfolderSpec = 16;
 			files = (
-				F990A885286F666500159819 /* com.newchromantics.PopShaderCamera.cameraextension.systemextension in Embed System Extensions */,
+				F990A885286F666500159819 /* com.newchromantics.PopKinectWebcam.cameraextension.systemextension in Embed System Extensions */,
 			);
 			name = "Embed System Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -48,19 +62,22 @@
 
 /* Begin PBXFileReference section */
 		BF3311E42CB6A39400D3936A /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
+		BF7611882CBBFD6D00EB4BE1 /* PopCameraDevice_Osx.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = PopCameraDevice_Osx.framework; sourceTree = "<group>"; };
+		BF76118D2CBC0AAB00EB4BE1 /* FrameProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameProvider.swift; sourceTree = "<group>"; };
+		BF76118F2CBD235000EB4BE1 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
 		BF7CEF792CB6C66A00A20F77 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 		BF7CEF7B2CB6C72B00A20F77 /* App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = App.xcconfig; sourceTree = "<group>"; };
 		BF7CEF7C2CB6C72B00A20F77 /* CameraExtension.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = CameraExtension.xcconfig; sourceTree = "<group>"; };
 		BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeError.swift; sourceTree = "<group>"; };
 		BF7CEF822CB7DA4C00A20F77 /* CameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraController.swift; sourceTree = "<group>"; };
 		BF7CEF842CB7DB7900A20F77 /* AppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppView.swift; sourceTree = "<group>"; };
-		F990A865286F663F00159819 /* PopShaderCamera.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PopShaderCamera.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F990A865286F663F00159819 /* PopKinectWebcam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PopKinectWebcam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F990A868286F663F00159819 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F990A86A286F663F00159819 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		F990A86C286F664500159819 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F990A86F286F664500159819 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		F990A871286F664500159819 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
-		F990A87B286F666500159819 /* com.newchromantics.PopShaderCamera.cameraextension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = com.newchromantics.PopShaderCamera.cameraextension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
+		F990A87B286F666500159819 /* com.newchromantics.PopKinectWebcam.cameraextension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = com.newchromantics.PopKinectWebcam.cameraextension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
 		F990A87D286F666500159819 /* cameraextensionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = cameraextensionProvider.swift; sourceTree = "<group>"; };
 		F990A87F286F666500159819 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		F990A881286F666500159819 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -73,6 +90,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BF76118A2CBBFD7400EB4BE1 /* PopCameraDevice_Osx.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -86,6 +104,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		BF76117E2CBBF71300EB4BE1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		BF7611902CBD235000EB4BE1 /* WebTest */ = {
+			isa = PBXGroup;
+			children = (
+				BF76118F2CBD235000EB4BE1 /* index.html */,
+			);
+			path = WebTest;
+			sourceTree = "<group>";
+		};
 		BF7CEF7A2CB6C66A00A20F77 /* Common */ = {
 			isa = PBXGroup;
 			children = (
@@ -100,19 +133,21 @@
 		F990A85C286F663F00159819 = {
 			isa = PBXGroup;
 			children = (
+				BF7611902CBD235000EB4BE1 /* WebTest */,
 				BF7CEF7A2CB6C66A00A20F77 /* Common */,
 				F990A87C286F666500159819 /* Extension */,
 				F990A866286F663F00159819 /* Products */,
 				F990A867286F663F00159819 /* App */,
 				BF3311E42CB6A39400D3936A /* Readme.md */,
+				BF76117E2CBBF71300EB4BE1 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
 		F990A866286F663F00159819 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F990A865286F663F00159819 /* PopShaderCamera.app */,
-				F990A87B286F666500159819 /* com.newchromantics.PopShaderCamera.cameraextension.systemextension */,
+				F990A865286F663F00159819 /* PopKinectWebcam.app */,
+				F990A87B286F666500159819 /* com.newchromantics.PopKinectWebcam.cameraextension.systemextension */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -120,6 +155,7 @@
 		F990A867286F663F00159819 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				BF7611882CBBFD6D00EB4BE1 /* PopCameraDevice_Osx.framework */,
 				BF7CEF842CB7DB7900A20F77 /* AppView.swift */,
 				F990A868286F663F00159819 /* AppDelegate.swift */,
 				BF7CEF822CB7DA4C00A20F77 /* CameraController.swift */,
@@ -135,6 +171,7 @@
 			isa = PBXGroup;
 			children = (
 				F990A87D286F666500159819 /* cameraextensionProvider.swift */,
+				BF76118D2CBC0AAB00EB4BE1 /* FrameProvider.swift */,
 				F990A88A287047FE00159819 /* Config.swift */,
 				F990A87F286F666500159819 /* main.swift */,
 				F990A881286F666500159819 /* Info.plist */,
@@ -146,23 +183,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		F990A864286F663F00159819 /* PopShaderCamera */ = {
+		F990A864286F663F00159819 /* PopKinectWebcam */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = F990A874286F664500159819 /* Build configuration list for PBXNativeTarget "PopShaderCamera" */;
+			buildConfigurationList = F990A874286F664500159819 /* Build configuration list for PBXNativeTarget "PopKinectWebcam" */;
 			buildPhases = (
 				F990A861286F663F00159819 /* Sources */,
 				F990A862286F663F00159819 /* Frameworks */,
 				F990A863286F663F00159819 /* Resources */,
 				F990A889286F666500159819 /* Embed System Extensions */,
+				BF76118C2CBBFD7400EB4BE1 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				F990A884286F666500159819 /* PBXTargetDependency */,
 			);
-			name = PopShaderCamera;
+			name = PopKinectWebcam;
 			productName = samplecamera;
-			productReference = F990A865286F663F00159819 /* PopShaderCamera.app */;
+			productReference = F990A865286F663F00159819 /* PopKinectWebcam.app */;
 			productType = "com.apple.product-type.application";
 		};
 		F990A87A286F666500159819 /* CameraExtension */ = {
@@ -179,7 +217,7 @@
 			);
 			name = CameraExtension;
 			productName = cameraextension;
-			productReference = F990A87B286F666500159819 /* com.newchromantics.PopShaderCamera.cameraextension.systemextension */;
+			productReference = F990A87B286F666500159819 /* com.newchromantics.PopKinectWebcam.cameraextension.systemextension */;
 			productType = "com.apple.product-type.system-extension";
 		};
 /* End PBXNativeTarget section */
@@ -200,7 +238,7 @@
 					};
 				};
 			};
-			buildConfigurationList = F990A860286F663F00159819 /* Build configuration list for PBXProject "PopShaderCamera" */;
+			buildConfigurationList = F990A860286F663F00159819 /* Build configuration list for PBXProject "PopKinectWebcam" */;
 			compatibilityVersion = "Xcode 13.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -209,11 +247,13 @@
 				Base,
 			);
 			mainGroup = F990A85C286F663F00159819;
+			packageReferences = (
+			);
 			productRefGroup = F990A866286F663F00159819 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				F990A864286F663F00159819 /* PopShaderCamera */,
+				F990A864286F663F00159819 /* PopKinectWebcam */,
 				F990A87A286F666500159819 /* CameraExtension */,
 			);
 		};
@@ -258,6 +298,7 @@
 			files = (
 				F990A880286F666500159819 /* main.swift in Sources */,
 				F990A87E286F666500159819 /* cameraextensionProvider.swift in Sources */,
+				BF76118E2CBC0AAB00EB4BE1 /* FrameProvider.swift in Sources */,
 				F990A88C287047FE00159819 /* Config.swift in Sources */,
 				BF7CEF7E2CB6CB9D00A20F77 /* RuntimeError.swift in Sources */,
 			);
@@ -412,6 +453,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = X52DR36JY2;
 				ENABLE_HARDENED_RUNTIME = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/App",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Tunnel a real camera device";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -422,7 +467,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopShaderCamera;
+				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopKinectWebcam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -443,6 +488,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = X52DR36JY2;
 				ENABLE_HARDENED_RUNTIME = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/App",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Tunnel a real camera device";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -453,7 +502,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopShaderCamera;
+				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopKinectWebcam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -467,11 +516,13 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Extension/Extension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = X52DR36JY2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Extension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "PopCameraShader Camera Extension";
 				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "System extension in plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -479,7 +530,8 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
-				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopShaderCamera.cameraextension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopKinectWebcam.cameraextension;
+				PRODUCT_NAME = com.newchromantics.PopKinectWebcam.cameraextension;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -493,11 +545,13 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Extension/Extension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = X52DR36JY2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Extension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "PopCameraShader Camera Extension";
 				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "System extension in plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -505,7 +559,8 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
-				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopShaderCamera.cameraextension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopKinectWebcam.cameraextension;
+				PRODUCT_NAME = com.newchromantics.PopKinectWebcam.cameraextension;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -516,7 +571,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		F990A860286F663F00159819 /* Build configuration list for PBXProject "PopShaderCamera" */ = {
+		F990A860286F663F00159819 /* Build configuration list for PBXProject "PopKinectWebcam" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F990A872286F664500159819 /* Debug */,
@@ -525,7 +580,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F990A874286F664500159819 /* Build configuration list for PBXNativeTarget "PopShaderCamera" */ = {
+		F990A874286F664500159819 /* Build configuration list for PBXNativeTarget "PopKinectWebcam" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F990A875286F664500159819 /* Debug */,
