@@ -13,7 +13,6 @@ let kWhiteStripeHeight: Int = 10
 
 class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 {
-	
 	private(set) var device: CMIOExtensionDevice!
 	
 	public var _streamSource: cameraStreamSource!
@@ -21,16 +20,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	private var _streamingCounter: UInt32 = 0
 	private var _streamingSinkCounter: UInt32 = 0
 	
-	private var _timer: DispatchSourceTimer?
-	
-	private let _timerQueue = DispatchQueue(label: "timerQueue", qos: .userInteractive, attributes: [], autoreleaseFrequency: .workItem, target: .global(qos: .userInteractive))
-			
 	var frameSource : FrameSource
-	
-	
-	private var _whiteStripeStartRow: UInt32 = 0
-	
-	private var _whiteStripeIsAscending: Bool = false
 	
 	
 	func myStreamingCounter() -> String {
@@ -136,9 +126,6 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	func startStreaming()
 	{
 		_streamingCounter += 1
-		//_timer = DispatchSource.makeTimerSource(flags: .strict, queue: _timerQueue)
-		//_timer!.schedule(deadline: .now(), repeating: 1.0/Double(kFrameRate), leeway: .seconds(0))
-		
 		let FrameLoopTask = Task
 		{
 			await FrameLoop()
@@ -152,10 +139,6 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		}
 		else {
 			_streamingCounter = 0
-			if let timer = _timer {
-				timer.cancel()
-				_timer = nil
-			}
 		}
 	}
 	
