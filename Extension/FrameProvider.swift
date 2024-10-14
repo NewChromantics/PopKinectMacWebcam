@@ -74,7 +74,7 @@ class DebugFrameSource : FrameSource
 	func PopNewFrame() async throws -> Frame
 	{
 		//	built in throttle for debug
-		let DelayMs = 1 / Double(frameRate)
+		let DelayMs = 1000 / Double(frameRate)
 		let DelayNs : UInt64 = UInt64(DelayMs * 1000000)
 		try await Task.sleep(nanoseconds: DelayNs)
 		
