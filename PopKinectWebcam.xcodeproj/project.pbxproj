@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		BF76118E2CBC0AAB00EB4BE1 /* FrameProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF76118D2CBC0AAB00EB4BE1 /* FrameProvider.swift */; };
-		BF7611922CBD69AD00EB4BE1 /* KinectDeviceSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7611912CBD69AD00EB4BE1 /* KinectDeviceSource.swift */; };
+		BF7611922CBD69AD00EB4BE1 /* KinectDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7611912CBD69AD00EB4BE1 /* KinectDevice.swift */; };
 		BF7CEF7E2CB6CB9D00A20F77 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
 		BF7CEF832CB7DA4C00A20F77 /* CameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF822CB7DA4C00A20F77 /* CameraController.swift */; };
 		BF7CEF852CB7DB7900A20F77 /* AppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF842CB7DB7900A20F77 /* AppView.swift */; };
@@ -16,15 +16,14 @@
 		BFDA39AA2CC57F58003C8172 /* PopCameraDevice in Frameworks */ = {isa = PBXBuildFile; productRef = BFDA39A92CC57F58003C8172 /* PopCameraDevice */; };
 		BFDA39AC2CC5A088003C8172 /* PopCameraDevice in Frameworks */ = {isa = PBXBuildFile; productRef = BFDA39AB2CC5A088003C8172 /* PopCameraDevice */; };
 		BFDA39AF2CC5A6CA003C8172 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F990A86C286F664500159819 /* Assets.xcassets */; };
+		BFDA39B12CC5B620003C8172 /* KinectStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFDA39B02CC5B620003C8172 /* KinectStream.swift */; };
 		F990A869286F663F00159819 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A868286F663F00159819 /* AppDelegate.swift */; };
 		F990A86B286F663F00159819 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A86A286F663F00159819 /* ViewController.swift */; };
 		F990A86D286F664500159819 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F990A86C286F664500159819 /* Assets.xcassets */; };
 		F990A870286F664500159819 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F990A86E286F664500159819 /* Main.storyboard */; };
-		F990A87E286F666500159819 /* cameraextensionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A87D286F666500159819 /* cameraextensionProvider.swift */; };
+		F990A87E286F666500159819 /* KinectCameraProviderSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A87D286F666500159819 /* KinectCameraProviderSource.swift */; };
 		F990A880286F666500159819 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A87F286F666500159819 /* main.swift */; };
 		F990A885286F666500159819 /* com.newchromantics.PopKinectWebcam.cameraextension.systemextension in Embed System Extensions */ = {isa = PBXBuildFile; fileRef = F990A87B286F666500159819 /* com.newchromantics.PopKinectWebcam.cameraextension.systemextension */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		F990A88B287047FE00159819 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A88A287047FE00159819 /* Config.swift */; };
-		F990A88C287047FE00159819 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A88A287047FE00159819 /* Config.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,13 +64,14 @@
 		BF3311E42CB6A39400D3936A /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 		BF76118D2CBC0AAB00EB4BE1 /* FrameProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameProvider.swift; sourceTree = "<group>"; };
 		BF76118F2CBD235000EB4BE1 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
-		BF7611912CBD69AD00EB4BE1 /* KinectDeviceSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinectDeviceSource.swift; sourceTree = "<group>"; };
+		BF7611912CBD69AD00EB4BE1 /* KinectDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinectDevice.swift; sourceTree = "<group>"; };
 		BF7CEF792CB6C66A00A20F77 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 		BF7CEF7B2CB6C72B00A20F77 /* App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = App.xcconfig; sourceTree = "<group>"; };
 		BF7CEF7C2CB6C72B00A20F77 /* CameraExtension.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = CameraExtension.xcconfig; sourceTree = "<group>"; };
 		BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeError.swift; sourceTree = "<group>"; };
 		BF7CEF822CB7DA4C00A20F77 /* CameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraController.swift; sourceTree = "<group>"; };
 		BF7CEF842CB7DB7900A20F77 /* AppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppView.swift; sourceTree = "<group>"; };
+		BFDA39B02CC5B620003C8172 /* KinectStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinectStream.swift; sourceTree = "<group>"; };
 		F990A865286F663F00159819 /* PopKinectWebcam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PopKinectWebcam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F990A868286F663F00159819 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F990A86A286F663F00159819 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -79,11 +79,10 @@
 		F990A86F286F664500159819 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		F990A871286F664500159819 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		F990A87B286F666500159819 /* com.newchromantics.PopKinectWebcam.cameraextension.systemextension */ = {isa = PBXFileReference; explicitFileType = "wrapper.system-extension"; includeInIndex = 0; path = com.newchromantics.PopKinectWebcam.cameraextension.systemextension; sourceTree = BUILT_PRODUCTS_DIR; };
-		F990A87D286F666500159819 /* cameraextensionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = cameraextensionProvider.swift; sourceTree = "<group>"; };
+		F990A87D286F666500159819 /* KinectCameraProviderSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinectCameraProviderSource.swift; sourceTree = "<group>"; };
 		F990A87F286F666500159819 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		F990A881286F666500159819 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F990A882286F666500159819 /* Extension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Extension.entitlements; sourceTree = "<group>"; };
-		F990A88A287047FE00159819 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -171,10 +170,10 @@
 		F990A87C286F666500159819 /* Extension */ = {
 			isa = PBXGroup;
 			children = (
-				BF7611912CBD69AD00EB4BE1 /* KinectDeviceSource.swift */,
-				F990A87D286F666500159819 /* cameraextensionProvider.swift */,
+				BF7611912CBD69AD00EB4BE1 /* KinectDevice.swift */,
+				BFDA39B02CC5B620003C8172 /* KinectStream.swift */,
+				F990A87D286F666500159819 /* KinectCameraProviderSource.swift */,
 				BF76118D2CBC0AAB00EB4BE1 /* FrameProvider.swift */,
-				F990A88A287047FE00159819 /* Config.swift */,
 				F990A87F286F666500159819 /* main.swift */,
 				F990A881286F666500159819 /* Info.plist */,
 				F990A882286F666500159819 /* Extension.entitlements */,
@@ -292,7 +291,6 @@
 				F990A869286F663F00159819 /* AppDelegate.swift in Sources */,
 				BF7CEF832CB7DA4C00A20F77 /* CameraController.swift in Sources */,
 				BF7CEF852CB7DB7900A20F77 /* AppView.swift in Sources */,
-				F990A88B287047FE00159819 /* Config.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -300,12 +298,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BF7611922CBD69AD00EB4BE1 /* KinectDeviceSource.swift in Sources */,
+				BF7611922CBD69AD00EB4BE1 /* KinectDevice.swift in Sources */,
 				F990A880286F666500159819 /* main.swift in Sources */,
-				F990A87E286F666500159819 /* cameraextensionProvider.swift in Sources */,
+				F990A87E286F666500159819 /* KinectCameraProviderSource.swift in Sources */,
 				BF76118E2CBC0AAB00EB4BE1 /* FrameProvider.swift in Sources */,
-				F990A88C287047FE00159819 /* Config.swift in Sources */,
 				BF7CEF7E2CB6CB9D00A20F77 /* RuntimeError.swift in Sources */,
+				BFDA39B12CC5B620003C8172 /* KinectStream.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
