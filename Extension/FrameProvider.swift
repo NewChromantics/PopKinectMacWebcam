@@ -99,14 +99,14 @@ class DebugFrameSource : FrameSource
 		RenderFrame(pixelBuffer,timestamp:timestamp)
 		CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
 		
-		var frame = Frame(pixels: pixelBuffer, format: self.videoFormat, time: timestamp)
+		let frame = Frame(pixels: pixelBuffer, format: self.videoFormat, time: timestamp)
 		
 		return frame
 	}
 	
 	func GetRenderText(frameTime:CMTime) -> String
 	{
-		var displayMessage = "Hello"
+		let displayMessage = "Hello"
 		var text = self.warningText ?? displayMessage
 		text = text + " \(Int(frameTime.seconds*1000))"
 		return text
@@ -115,7 +115,7 @@ class DebugFrameSource : FrameSource
 	
 	func RenderFrame(_ pixelBuffer:CVPixelBuffer,timestamp:CMTime)
 	{
-		var text = GetRenderText( frameTime: timestamp )
+		let text = GetRenderText( frameTime: timestamp )
 		
 		let pixelData = CVPixelBufferGetBaseAddress(pixelBuffer)
 		let width = CVPixelBufferGetWidth(pixelBuffer)

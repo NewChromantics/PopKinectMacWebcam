@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import PopCameraDevice
 
 private var cameraControllerInstance : CameraController? = nil
 
@@ -34,13 +35,28 @@ struct AppView : View
 			DebugLog("Created Camera")
 		}
 		DebugLog("Init app view")
-		ListCameraDeviceNames()
 	}
 	
 	func DebugLog(_ message:String)
 	{
 		cameraDebug.append(message)
 		print(message)
+	}
+	
+	func getAllKinectNames() throws -> [String]
+	{
+		let DeviceMetas = try PopCameraDevice.EnumDevices(requireSerialPrefix: "Freenect:")
+		
+		var deviceNames = DeviceMetas.map
+		{
+			device in
+			"\(device.Serial)"
+		}
+		if ( DeviceMetas.count == 0 )
+		{
+			deviceNames.append("No devices")
+		}
+		return deviceNames
 	}
 
 	func getAllCaptureDeviceNames() throws -> [String]
@@ -75,7 +91,7 @@ struct AppView : View
 		return deviceNames
 	}
 	
-	func ListCameraDeviceNames()
+	func ListCameraNames()
 	{
 		do
 		{
@@ -84,6 +100,18 @@ struct AppView : View
 		catch let error
 		{
 			DebugLog("Error getting cameras \(error.localizedDescription)")
+		}
+	}
+	
+	func ListKinectNames()
+	{
+		do
+		{
+			DebugLog( try getAllKinectNames().joined(separator: "\n"))
+		}
+		catch let error
+		{
+			DebugLog("Error getting devices \(error.localizedDescription)")
 		}
 	}
 	
@@ -109,12 +137,17 @@ struct AppView : View
 		{
 			Text("Pop Kinect Webcam")
 				.font(.title)
+			let LibVersion = PopCameraDevice.GetVersion()
+			Text("PopCameraDevice Version \(LibVersion)")
+				.font(.subheadline)
+			
 			HStack()
 			{
 				Button("Install Extension",action:OnActivateExtension)
 				Button("Remove Extension",action:OnDeactivateExtension)
+				Button("List Cameras",action:ListCameraNames)
+				Button("List Kinects",action:ListKinectNames)
 			}
-			Button("List Cameras",action:ListCameraDeviceNames)
 			
 			ScrollView
 			{

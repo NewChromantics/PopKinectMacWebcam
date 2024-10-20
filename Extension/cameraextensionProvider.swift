@@ -124,7 +124,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	func startStreaming()
 	{
 		_streamingCounter += 1
-		let FrameLoopTask = Task
+		Task
 		{
 			await FrameLoop()
 		}
@@ -414,14 +414,8 @@ class cameraProviderSource: NSObject, CMIOExtensionProviderSource
 		while ( true )
 		{
 			try! await Task.sleep(for: .seconds(1))
-			do
-			{
-				let Devices = ["Kinect 1","Kinect 2"]
-				OnFoundDevices( Devices )
-			}
-			catch let error
-			{
-			}
+			let Devices = ["Kinect 1","Kinect 2"]
+			OnFoundDevices( Devices )
 		}
 	}
 	
