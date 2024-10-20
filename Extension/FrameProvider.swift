@@ -37,7 +37,8 @@ class DebugFrameSource : FrameSource
 	
 	//	render contents
 	//	externally set text
-	var warningText : String? = nil
+	var warningText : String?
+	var displayText : String
 	var clearColor : CGColor = NSColor.black.cgColor
 	let paragraphStyle = NSMutableParagraphStyle()
 	var textFontAttributes: [NSAttributedString.Key : Any]
@@ -46,9 +47,11 @@ class DebugFrameSource : FrameSource
 	var textFont : NSFont { NSFont.systemFont(ofSize: fontSize)}
 
 	
-	init(clearColour:CGColor)
+	init(displayText:String,clearColour:CGColor)
 	{
 		self.clearColor = clearColour
+		self.displayText = displayText
+		
 		//let dims = CMVideoDimensions(width: 1920, height: 1080)
 		let dims = CMVideoDimensions(width: self.width, height: self.height)
 		CMVideoFormatDescriptionCreate(
@@ -106,9 +109,7 @@ class DebugFrameSource : FrameSource
 	
 	func GetRenderText(frameTime:CMTime) -> String
 	{
-		let displayMessage = "Hello"
-		var text = self.warningText ?? displayMessage
-		text = text + " \(Int(frameTime.seconds*1000))"
+		let text = "\(displayText)\n\(Int(frameTime.seconds*1000))"
 		return text
 	}
 	

@@ -14,6 +14,8 @@
 		BF7CEF852CB7DB7900A20F77 /* AppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF842CB7DB7900A20F77 /* AppView.swift */; };
 		BF8474CE2CB7F97400016574 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
 		BFDA39AA2CC57F58003C8172 /* PopCameraDevice in Frameworks */ = {isa = PBXBuildFile; productRef = BFDA39A92CC57F58003C8172 /* PopCameraDevice */; };
+		BFDA39AC2CC5A088003C8172 /* PopCameraDevice in Frameworks */ = {isa = PBXBuildFile; productRef = BFDA39AB2CC5A088003C8172 /* PopCameraDevice */; };
+		BFDA39AF2CC5A6CA003C8172 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F990A86C286F664500159819 /* Assets.xcassets */; };
 		F990A869286F663F00159819 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A868286F663F00159819 /* AppDelegate.swift */; };
 		F990A86B286F663F00159819 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A86A286F663F00159819 /* ViewController.swift */; };
 		F990A86D286F664500159819 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F990A86C286F664500159819 /* Assets.xcassets */; };
@@ -97,6 +99,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BFDA39AC2CC5A088003C8172 /* PopCameraDevice in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -273,6 +276,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BFDA39AF2CC5A6CA003C8172 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -618,6 +622,11 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		BFDA39A92CC57F58003C8172 /* PopCameraDevice */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFDA39A62CC57BF5003C8172 /* XCLocalSwiftPackageReference "../PopCameraDevice.SwiftPackage" */;
+			productName = PopCameraDevice;
+		};
+		BFDA39AB2CC5A088003C8172 /* PopCameraDevice */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BFDA39A62CC57BF5003C8172 /* XCLocalSwiftPackageReference "../PopCameraDevice.SwiftPackage" */;
 			productName = PopCameraDevice;

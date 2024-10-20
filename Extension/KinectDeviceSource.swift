@@ -1,6 +1,20 @@
 import Foundation
 import CoreMediaIO
 import Cocoa
+import PopCameraDevice
+
+func GetNiceKinectName(_ device:PopCameraDevice.EnumDeviceMeta) -> String
+{
+	var Serial = device.Serial
+	Serial = Serial.removePrefix("Freenect:")
+	return "Kinect \(Serial)"
+}
+
+func GetColour(_ named:String) -> CGColor
+{
+	let Colour = NSColor(named: named)
+	return Colour?.cgColor ?? NSColor.red.cgColor
+}
 
 
 class KinectDeviceSource: NSObject, CMIOExtensionDeviceSource
@@ -8,18 +22,26 @@ class KinectDeviceSource: NSObject, CMIOExtensionDeviceSource
 	var device : CMIOExtensionDevice!
 	var colourStreamSource: KinectStreamSource!
 	var depthStreamSource: KinectStreamSource!
+	let kinectDeviceMeta : PopCameraDevice.EnumDeviceMeta
+	
+	
+	
 
-	init(localizedName:String)
+	init(_ deviceMeta:PopCameraDevice.EnumDeviceMeta)
 	{
+		self.kinectDeviceMeta = deviceMeta
+		
 		super.init()
+		
+		let localizedName = GetNiceKinectName(deviceMeta)
 		
 		let deviceUid = UUID()
 		self.device = CMIOExtensionDevice(localizedName: localizedName, deviceID: deviceUid, legacyDeviceID: deviceUid.uuidString, source: self)
 				
 		let colourUid = UUID()
 		let depthUid = UUID()
-		colourStreamSource = KinectStreamSource(localizedName: "Colour", streamID: colourUid, device: device, backgroundColour:NSColor.green.cgColor )
-		depthStreamSource = KinectStreamSource(localizedName: "Depth", streamID: depthUid, device: device, backgroundColour:NSColor.blue.cgColor)
+		colourStreamSource = KinectStreamSource(localizedStreamName: "Colour", streamID: colourUid, device: device, backgroundColour:GetColour("StreamDebugColour") )
+		depthStreamSource = KinectStreamSource(localizedStreamName: "Depth", streamID: depthUid, device: device, backgroundColour:GetColour("StreamDebugDepth") )
 
 		try! device.addStream(colourStreamSource.stream)
 		try! device.addStream(depthStreamSource.stream)
@@ -102,15 +124,17 @@ class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 	let device: CMIOExtensionDevice	//	parent
 	let streamFormat: CMIOExtensionStreamFormat
 	
-	init(localizedName: String, streamID: UUID, device: CMIOExtensionDevice, backgroundColour:CGColor)
+	init(localizedStreamName: String, streamID: UUID, device: CMIOExtensionDevice, backgroundColour:CGColor)
 	{
+		let KinectSource = device.source as! KinectDeviceSource
+		let label = "\(KinectSource.kinectDeviceMeta.Serial) \(localizedStreamName)"
 		self.device = device
-		self.frameSource = DebugFrameSource(clearColour: backgroundColour)
+		self.frameSource = DebugFrameSource(displayText: label, clearColour: backgroundColour)
 		self.streamFormat = CMIOExtensionStreamFormat.init(formatDescription: frameSource.videoFormat, maxFrameDuration: frameSource.maxFrameDuration, minFrameDuration: frameSource.maxFrameDuration, validFrameDurations: nil)
 		
 		super.init()
 		
-		self.stream = CMIOExtensionStream(localizedName: localizedName, streamID: streamID, direction: .source, clockType: .hostTime, source: self)
+		self.stream = CMIOExtensionStream(localizedName: localizedStreamName, streamID: streamID, direction: .source, clockType: .hostTime, source: self)
 		
 		Task
 		{

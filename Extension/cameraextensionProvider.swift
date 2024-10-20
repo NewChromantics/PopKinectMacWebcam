@@ -3,6 +3,20 @@ import CoreMediaIO
 import IOKit.audio
 import os.log
 import Cocoa
+import PopCameraDevice
+
+
+
+extension String
+{
+	func removePrefix(_ prefix: String) -> String
+	{
+		guard self.hasPrefix(prefix) else { return self }
+		return String(self.dropFirst(prefix.count))
+	}
+}
+
+
 
 let CMIOExtensionPropertyCustomPropertyData_just: CMIOExtensionProperty = CMIOExtensionProperty(rawValue: "4cc_just_glob_0000")
 
@@ -27,7 +41,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	
 	init(localizedName: String) {
 		
-		frameSource = DebugFrameSource(clearColour: NSColor.black.cgColor)
+		frameSource = DebugFrameSource(displayText: localizedName, clearColour: NSColor.black.cgColor)
 		
 		super.init()
 		let deviceID = UUID()
@@ -414,16 +428,24 @@ class cameraProviderSource: NSObject, CMIOExtensionProviderSource
 		while ( true )
 		{
 			try! await Task.sleep(for: .seconds(1))
-			let Devices = ["Kinect 1","Kinect 2"]
-			OnFoundDevices( Devices )
+			
+			do
+			{
+				let Devices = try PopCameraDevice.EnumDevices(requireSerialPrefix: "Freenect:")
+				OnFoundDevices( Devices )
+			}
+			catch let error
+			{
+				print("Error enumerating devices; \(error.localizedDescription)")
+			}
 		}
 	}
 	
-	func OnFoundDevice(_ deviceUid:String) throws
+	func OnFoundDevice(_ deviceMeta:PopCameraDevice.EnumDeviceMeta) throws
 	{
 		func MatchDevice(element:Dictionary<String,KinectDeviceSource>.Element) -> Bool
 		{
-			return element.key == deviceUid
+			return element.key == deviceMeta.Serial
 		}
 		
 		//	already found
@@ -433,22 +455,22 @@ class cameraProviderSource: NSObject, CMIOExtensionProviderSource
 		}
 		
 		//	make a new device
-		let device = KinectDeviceSource(localizedName: deviceUid)
+		let device = KinectDeviceSource(deviceMeta)
 		try provider.addDevice(device.device)
-		self.devices[deviceUid] = device
+		self.devices[deviceMeta.Serial] = device
 	}
 	
-	func OnFoundDevices(_ deviceUids:[String])
+	func OnFoundDevices(_ deviceMetas:[PopCameraDevice.EnumDeviceMeta])
 	{
-		for deviceUid in deviceUids
+		for deviceMeta in deviceMetas
 		{
 			do
 			{
-				try OnFoundDevice(deviceUid)
+				try OnFoundDevice(deviceMeta)
 			}
 			catch let error
 			{
-				fatalError("Failed to add device '\(deviceUid)': \(error.localizedDescription)")
+				fatalError("Failed to add device '\(deviceMeta.Serial)': \(error.localizedDescription)")
 			}
 		}
 	}
