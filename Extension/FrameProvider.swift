@@ -39,6 +39,7 @@ class DebugFrameSource : FrameSource
 	//	externally set text
 	var warningText : String?
 	var displayText : String
+	var frameCounter : Int = 0
 	var clearColor : CGColor = NSColor.black.cgColor
 	let paragraphStyle = NSMutableParagraphStyle()
 	var textFontAttributes: [NSAttributedString.Key : Any]
@@ -104,12 +105,14 @@ class DebugFrameSource : FrameSource
 		
 		let frame = Frame(pixels: pixelBuffer, format: self.videoFormat, time: timestamp)
 		
+		frameCounter = frameCounter+1
+
 		return frame
 	}
 	
 	func GetRenderText(frameTime:CMTime) -> String
 	{
-		let text = "\(displayText)\n\(Int(frameTime.seconds*1000))"
+		let text = "\(displayText)\n\(Int(frameTime.seconds*1000))\n\(frameCounter)"
 		return text
 	}
 	

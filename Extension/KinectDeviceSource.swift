@@ -123,11 +123,18 @@ class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 	var stream : CMIOExtensionStream!
 	let device: CMIOExtensionDevice	//	parent
 	let streamFormat: CMIOExtensionStreamFormat
+	var kinectDevice : KinectDeviceSource	{	return device.source as! KinectDeviceSource	}
+	
+	
+	//	we are/not supposed to be streaming
+	var streamingRequested = false
+	var popDeviceInstance : Int?
 	
 	init(localizedStreamName: String, streamID: UUID, device: CMIOExtensionDevice, backgroundColour:CGColor)
 	{
-		let KinectSource = device.source as! KinectDeviceSource
+		let KinectSource = /*self.kinectDevice*/device.source as! KinectDeviceSource
 		let label = "\(KinectSource.kinectDeviceMeta.Serial) \(localizedStreamName)"
+
 		self.device = device
 		self.frameSource = DebugFrameSource(displayText: label, clearColour: backgroundColour)
 		self.streamFormat = CMIOExtensionStreamFormat.init(formatDescription: frameSource.videoFormat, maxFrameDuration: frameSource.maxFrameDuration, minFrameDuration: frameSource.maxFrameDuration, validFrameDurations: nil)
@@ -185,10 +192,12 @@ class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 	
 	func startStream() throws
 	{
+		self.streamingRequested = true
 	}
 	
 	func stopStream() throws
 	{
+		self.streamingRequested = false
 	}
 	
 	func ClearError()
@@ -208,6 +217,17 @@ class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 	{
 		while ( true )
 		{
+			if !streamingRequested
+			{
+				//	todo: wait on a wake-up semaphore
+				try! await Task.sleep(for: .seconds(1))
+				continue
+			}
+			
+			//	if no pop device instance, create it here...
+			//	a frameSource!
+			//	this instance will probably be managed by .KinectDeviceSource
+			
 			do
 			{
 				let frame = try await frameSource.PopNewFrame()
