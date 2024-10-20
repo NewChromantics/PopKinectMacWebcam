@@ -2,7 +2,10 @@ import SwiftUI
 import AVFoundation
 import PopCameraDevice
 
-private var cameraControllerInstance : CameraController? = nil
+//	nil as it needs some callbacks, so has to be created by the app(view)
+private var extensionManagerInstance : ExtensionManager? = nil
+
+
 
 class LogBuffer : ObservableObject
 {
@@ -24,14 +27,14 @@ class LogBuffer : ObservableObject
 
 struct AppView : View
 {
-	var cameraController : CameraController {	return cameraControllerInstance!	}
+	var extensionManager : ExtensionManager {	return extensionManagerInstance!	}
 	@ObservedObject var cameraDebug = LogBuffer()
 
 	init()
 	{
-		if ( cameraControllerInstance == nil )
+		if ( extensionManagerInstance == nil )
 		{
-			cameraControllerInstance = CameraController( log:DebugLog )
+			extensionManagerInstance = ExtensionManager( log:DebugLog )
 			DebugLog("Created Camera")
 		}
 		DebugLog("Init app view")
@@ -54,7 +57,7 @@ struct AppView : View
 		}
 		if ( DeviceMetas.count == 0 )
 		{
-			deviceNames.append("No devices")
+			deviceNames.append("No Kinects")
 		}
 		return deviceNames
 	}
@@ -111,19 +114,20 @@ struct AppView : View
 		}
 		catch let error
 		{
-			DebugLog("Error getting devices \(error.localizedDescription)")
+			DebugLog("Error getting Kinects \(error.localizedDescription)")
 		}
 	}
 	
 	
+	//	gr: i want to make these async...
 	func OnActivateExtension()
 	{
-		cameraController.activateCamera()
+		extensionManager.ActivateCameraExtension()
 	}
 	
 	func OnDeactivateExtension()
 	{
-		cameraController.deactivateCamera()
+		extensionManager.DeactivateCameraExtension()
 	}
 	
 	func OnClearLog()
