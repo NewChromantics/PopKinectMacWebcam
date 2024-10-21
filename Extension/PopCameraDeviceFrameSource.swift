@@ -213,8 +213,9 @@ class PopCameraDeviceFrameSource : FrameSource
 			return nil
 		}
 		
-		let NextFrameMeta = try deviceInstance.PeekNextFrame()
-		guard let NextFrameMeta else {	return nil }
+		let NextFrame = try deviceInstance.PopNextFrame()
+		guard let NextFrame else {	return nil }
+		let NextFrameMeta = NextFrame.Meta
 		
 		if let error = NextFrameMeta.Error
 		{
@@ -239,9 +240,7 @@ class PopCameraDeviceFrameSource : FrameSource
 			//	lock pixels...
 			CVPixelBufferLockBaseAddress(pixelBuffer, [])
 
-			//	pop frame into our buffer
-			deviceInstance.PopNextFrame()
-			
+			//	copy frame pixels in
 			//RenderFrame(pixelBuffer, text:"todo: render new frame", backgroundColour: NSColor.red.cgColor)
 			//RenderFrame(pixelBuffer,timestamp:timestamp)
 			
