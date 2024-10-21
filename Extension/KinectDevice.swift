@@ -24,6 +24,7 @@ class KinectDeviceSource: NSObject, CMIOExtensionDeviceSource
 	var depthStreamSource: KinectStreamSource!
 	let kinectDeviceMeta : PopCameraDevice.EnumDeviceMeta
 	
+	var kinectDeviceFrameSource : PopCameraDeviceFrameSource?
 	
 	
 
@@ -39,12 +40,20 @@ class KinectDeviceSource: NSObject, CMIOExtensionDeviceSource
 		self.device = CMIOExtensionDevice(localizedName: localizedName, deviceID: deviceUid, legacyDeviceID: deviceUid.uuidString, source: self)
 				
 		let colourUid = UUID()
-		let depthUid = UUID()
-		colourStreamSource = KinectStreamSource(localizedStreamName: "Colour", streamID: colourUid, device: device, backgroundColour:GetColour("StreamDebugColour") )
-		depthStreamSource = KinectStreamSource(localizedStreamName: "Depth", streamID: depthUid, device: device, backgroundColour:GetColour("StreamDebugDepth") )
+		let colourFormats = deviceMeta.GetStreamFormats()
+		if !colourFormats.isEmpty
+		{
+			colourStreamSource = KinectStreamSource(localizedStreamName: "Colour", streamID: colourUid, device: device, formats:colourFormats )
+			try! device.addStream(colourStreamSource.stream)
+		}
 
-		try! device.addStream(colourStreamSource.stream)
-		try! device.addStream(depthStreamSource.stream)
+		let depthUid = UUID()
+		let depthFormats = deviceMeta.GetStreamDepthFormats()
+		if !depthFormats.isEmpty
+		{
+			depthStreamSource = KinectStreamSource(localizedStreamName: "Depth", streamID: depthUid, device: device, formats:depthFormats )
+			try! device.addStream(depthStreamSource.stream)
+		}
 	}
 	
 	var availableProperties: Set<CMIOExtensionProperty> {
@@ -58,8 +67,8 @@ class KinectDeviceSource: NSObject, CMIOExtensionDeviceSource
 		if properties.contains(.deviceTransportType) {
 			deviceProperties.transportType = kIOAudioDeviceTransportTypeVirtual
 		}
+
 		if properties.contains(.deviceModel) {
-			//deviceProperties.setPropertyState(CMIOExtensionPropertyState(value: "toto" as NSString), forProperty: .deviceModel)
 			deviceProperties.model = "PopShaderCamera Model"
 		}
 		
@@ -73,6 +82,8 @@ class KinectDeviceSource: NSObject, CMIOExtensionDeviceSource
 	
 	func startStreaming()
 	{
+		//	based on.... properties?
+		
 		do
 		{
 			try colourStreamSource.startStream()
@@ -111,6 +122,19 @@ class KinectDeviceSource: NSObject, CMIOExtensionDeviceSource
 		{
 			print(error.localizedDescription)
 		}
+	}
+	
+	
+	func GetFrameSource() -> FrameSource
+	{
+		//	restart frame source if errored?
+		if let kinectDeviceFrameSource
+		{
+			return kinectDeviceFrameSource
+		}
+		
+		kinectDeviceFrameSource = PopCameraDeviceFrameSource( deviceSerial:kinectDeviceMeta.Serial )
+		return kinectDeviceFrameSource!
 	}
 }
 

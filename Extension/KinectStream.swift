@@ -8,25 +8,27 @@ import PopCameraDevice
 class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 {
 	var frameSource : FrameSource
+	{
+		kinectDevice.GetFrameSource()
+	}
+	
 	
 	var stream : CMIOExtensionStream!
 	let device: CMIOExtensionDevice	//	parent
-	let streamFormat: CMIOExtensionStreamFormat
 	var kinectDevice : KinectDeviceSource	{	return device.source as! KinectDeviceSource	}
-	
-	
+	var supportedKinectFormats : [StreamImageFormat]
+
 	//	we are/not supposed to be streaming
 	var streamingRequested = false
-	var popDeviceInstance : Int?
 	
-	init(localizedStreamName: String, streamID: UUID, device: CMIOExtensionDevice, backgroundColour:CGColor)
+	init(localizedStreamName: String, streamID: UUID, device: CMIOExtensionDevice, formats:[PopCameraDevice.StreamImageFormat])
 	{
+		self.supportedKinectFormats = formats
+		
 		let KinectSource = /*self.kinectDevice*/device.source as! KinectDeviceSource
 		let label = "\(KinectSource.kinectDeviceMeta.Serial) \(localizedStreamName)"
 
 		self.device = device
-		self.frameSource = DebugFrameSource(displayText: label, clearColour: backgroundColour)
-		self.streamFormat = CMIOExtensionStreamFormat.init(formatDescription: frameSource.videoFormat, maxFrameDuration: frameSource.maxFrameDuration, minFrameDuration: frameSource.maxFrameDuration, validFrameDurations: nil)
 		
 		super.init()
 		
@@ -40,7 +42,17 @@ class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 	
 	var formats: [CMIOExtensionStreamFormat]
 	{
-		return [streamFormat]
+		//	supported formats
+		let formats = supportedKinectFormats.map
+		{
+			streamImageFormat in
+			let Description = streamImageFormat.GetFormatDescripton()
+			let MinFrameDurationSecs = CMTime(value: 1, timescale: Int32(30))
+			let MaxFrameDurationSecs = CMTime(value: 1, timescale: Int32(60))
+			let streamFormat = CMIOExtensionStreamFormat.init(formatDescription: Description, maxFrameDuration: MaxFrameDurationSecs, minFrameDuration: MinFrameDurationSecs, validFrameDurations: nil)
+			return streamFormat
+		}
+		return formats
 	}
 	/*
 	var activeFormatIndex: Int = 0 {
@@ -112,11 +124,6 @@ class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 				try! await Task.sleep(for: .seconds(1))
 				continue
 			}
-			
-			//	if no pop device instance, create it here...
-			//	a frameSource!
-			//	this instance will probably be managed by .KinectDeviceSource
-			
 			do
 			{
 				let frame = try await frameSource.PopNewFrame()
