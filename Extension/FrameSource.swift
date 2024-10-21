@@ -12,9 +12,10 @@ struct Frame
 protocol FrameSource
 {
 	func PopNewFrame() async throws -> Frame;
+	/*
 	var videoFormat : CMFormatDescription! { get }
 	var maxFrameDuration : CMTime { get }
-	
+	*/
 	//	not the best approach atm, but until we do some dumb
 	//	render-text to the parent, have the ability to set some external text
 	var warningText : String? { get set }
