@@ -124,6 +124,14 @@ class KinectDeviceSource: NSObject, CMIOExtensionDeviceSource
 		}
 	}
 	
+	func FreeFrameSource()
+	{
+		if let kinectDeviceFrameSource
+		{
+			kinectDeviceFrameSource.Free()
+			self.kinectDeviceFrameSource = nil
+		}
+	}
 	
 	func GetFrameSource() -> FrameSource
 	{

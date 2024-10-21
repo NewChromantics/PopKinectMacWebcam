@@ -9,7 +9,7 @@ class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 {
 	var frameSource : FrameSource
 	{
-		kinectDevice.GetFrameSource()
+		return kinectDevice.GetFrameSource()
 	}
 	
 	
@@ -99,6 +99,7 @@ class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 	func stopStream() throws
 	{
 		self.streamingRequested = false
+		kinectDevice.FreeFrameSource()
 	}
 	
 	func ClearError()
@@ -108,10 +109,8 @@ class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 	
 	func OnError(_ error:String?)
 	{
-		if let source = self.frameSource as? DebugFrameSource
-		{
-			source.warningText = error
-		}
+		var source = frameSource
+		source.warningText = error
 	}
 	
 	func FrameLoop() async

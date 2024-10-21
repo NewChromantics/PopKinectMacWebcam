@@ -11,7 +11,8 @@ struct Frame
 
 protocol FrameSource
 {
-	func PopNewFrame() async throws -> Frame;
+	func PopNewFrame() async throws -> Frame
+	func Free()
 	/*
 	var videoFormat : CMFormatDescription! { get }
 	var maxFrameDuration : CMTime { get }
@@ -80,6 +81,10 @@ class DebugFrameSource : FrameSource
 			NSAttributedString.Key.paragraphStyle: paragraphStyle
 		]
 		
+	}
+	
+	func Free()
+	{
 	}
 	
 	func PopNewFrame() async throws -> Frame
