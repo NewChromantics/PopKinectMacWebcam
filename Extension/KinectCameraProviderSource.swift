@@ -49,7 +49,15 @@ class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 	{
 		while ( true )
 		{
-			try! await Task.sleep(for: .seconds(1))
+			do
+			{
+				try await Task.sleep(for: .seconds(1))
+			}
+			catch let Error
+			{
+				print("WatchForNewDevicesThread sleep error \(Error.localizedDescription)")
+				return
+			}
 			
 			do
 			{
