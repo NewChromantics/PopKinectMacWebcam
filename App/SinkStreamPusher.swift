@@ -127,6 +127,12 @@ class CameraWithSinkInterface
 		{
 			(sinkStream: CMIOStreamID, buf: UnsafeMutableRawPointer?, refCon: UnsafeMutableRawPointer?) in
 			
+			if ( refCon == nil )
+			{
+				print("Queue altered nil self")
+				return
+			}
+			
 			let ThisPointer = Unmanaged<CameraWithSinkInterface>.fromOpaque(refCon!)
 			let This = ThisPointer.takeUnretainedValue()
 			//This.readyToEnqueue = true
