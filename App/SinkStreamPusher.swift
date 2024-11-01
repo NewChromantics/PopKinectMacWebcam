@@ -104,7 +104,7 @@ class CameraWithSinkInterface
 
 		//	todo: more sophisticated sink stream detection
 		//		ie. read a property we're looking for to identify it
-		return StreamIds[1]
+		return StreamIds[0]
 	}
 	
 	func BindToSinkQueue(sinkStreamId:CMIOStreamID) throws
