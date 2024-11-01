@@ -26,16 +26,19 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 		CMTime(value: 1, timescale: Int32(60))
 	}
 	
-	//	externally set text
-	var warningText : String?
 	
 	var initError : String?
-
 	var running = true
+	var sinkPusherStarted = false
+	
+	var format : StreamImageFormat
 	
 	init(device: CMIOExtensionDevice)
 	{
+		format = StreamImageFormat(width:600,height:500,pixelFormat: kCMPixelFormat_32BGRA)
+
 		super.init()
+		
 
 		//	create sink source
 		self.sinkStream = CMIOExtensionStream(localizedName: SinkName, streamID: SinkUid, direction: .sink, clockType: .hostTime, source: self)
@@ -66,7 +69,21 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 		//	make nicer error
 		do
 		{
+			//throw RuntimeError( self.sinkPusherStarted  ? "ConsumeFrame" : "No sink-pusher-connected")
+
 			let (Sample, SequenceNumber, Disconinuity, HasMoreSamples) = try await sinkStream.consumeSampleBuffer(from: client)
+			
+			//	notify it's been consumed
+			let now = CMClockGetTime(CMClockGetHostTimeClock())
+			let output = CMIOExtensionScheduledOutput(sequenceNumber: SequenceNumber, hostTimeInNanoseconds: UInt64(now.seconds * Double(NSEC_PER_SEC)))
+			
+			//	somewhere, having this causes the nil! exception?
+			//	maybe this should ONLY be used in the callback version?
+			//self.sinkStream.notifyScheduledOutputChanged(output)
+			
+			throw RuntimeError( self.sinkPusherStarted  ? "ConsumedFrame(output)" : "No sink-pusher-connected")
+
+			//first use of this immediately had nil! error
 			return Sample
 		}
 		catch let Error
@@ -84,25 +101,37 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 				throw RuntimeError("Waiting for client")
 			}
 			
+			var errors : [String] = []
+			
 			//	try and read from each client
 			//	gr: does this block? which is okay - unless we have multiple clients...
 			for client in Clients
 			{
-				//	sample is CMSampleBuffer
-				//	cannot be null, so will this throw if no sample?
-				let Sample = try await ConsumeFrame(client: client)
-				let now = CMClockGetTime(CMClockGetHostTimeClock())
-				/*
-				 //self.lastTimingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
-				 let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds: UInt64(self.lastTimingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-				 if self._streamingCounter > 0 {
-				 self._streamSource.stream.send(sbuf!, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf!.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-				 }
-				 self._streamSink.stream.notifyScheduledOutputChanged(output)
-				 */
-				var frame = Frame(sample:Sample,time:now)
-				return frame
+				do
+				{
+					//	sample is CMSampleBuffer
+					//	cannot be null, so will this throw if no sample?
+					let Sample = try await ConsumeFrame(client: client)
+					let now = CMClockGetTime(CMClockGetHostTimeClock())
+					/*
+					 //self.lastTimingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
+					 let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds: UInt64(self.lastTimingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+					 if self._streamingCounter > 0 {
+					 self._streamSource.stream.send(sbuf!, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf!.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+					 }
+					 self._streamSink.stream.notifyScheduledOutputChanged(output)
+					 */
+					var frame = Frame(sample:Sample,time:now)
+					return frame
+				}
+				catch let error
+				{
+					errors.append(error.localizedDescription)
+				}
 			}
+			
+			let errorsString = errors.joined(separator: ",")
+			throw RuntimeError("Failed to get frame from x\(Clients.count) clients; \(errorsString)")
 			
 			//	no result (or no clients), pause
 			let DelayMs = 1000 / Double(frameRate)
@@ -139,7 +168,17 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 	//	gr: getter?
 	var formats: [CMIOExtensionStreamFormat]
 	{
-		return []
+		let formats = [format].map
+		{
+			streamImageFormat in
+			let Description = streamImageFormat.GetFormatDescripton()
+			let MinFrameDurationSecs = CMTime(value: 1, timescale: Int32(30))
+			let MaxFrameDurationSecs = CMTime(value: 1, timescale: Int32(60))
+			let streamFormat = CMIOExtensionStreamFormat.init(formatDescription: Description, maxFrameDuration: MaxFrameDurationSecs, minFrameDuration: MinFrameDurationSecs, validFrameDurations: nil)
+			return streamFormat
+		}
+		
+		return formats
 	}
 	
 	var availableProperties: Set<CMIOExtensionProperty>
@@ -171,12 +210,14 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 	{
 		//	start consuming loop if we havent
 		print("Sink stream start")
+		sinkPusherStarted = true
 	}
 	
 	func stopStream() throws
 	{
 		//	if a client is pushing frames, why stop?
 		print("Sink stream stop")
+		sinkPusherStarted = false
 	}
 }
 
@@ -197,8 +238,8 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 	let device: CMIOExtensionDevice	//	parent
 	var supportedKinectFormats : [StreamImageFormat]
 
-	//	we are/not supposed to be streaming
-	var sinkPusherStarted = false
+	//	we are/not supposed to be streaming (client, eg photobooth, connected)
+	var streamInUse = false
 	
 	init(localizedStreamName: String, streamID: UUID, device: CMIOExtensionDevice, formats:[PopCameraDevice.StreamImageFormat])
 	{
@@ -277,12 +318,12 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 	
 	func startStream() throws
 	{
-		self.sinkPusherStarted = true
+		self.streamInUse = true
 	}
 	
 	func stopStream() throws
 	{
-		self.sinkPusherStarted = false
+		self.streamInUse = false
 	}
 	
 	func ClearError()
@@ -320,7 +361,7 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 		while ( true )
 		{
 			/*	gr allow consume() call to error with its specific error
-			if !sinkPusherStarted
+			if !streamInUse
 			{
 				//	todo: wait on a wake-up semaphore
 				try! await Task.sleep(for: .seconds(1))

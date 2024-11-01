@@ -105,12 +105,14 @@ class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 		}
 	}
 	
-	func connect(to client: CMIOExtensionClient) throws {
-		
+	func connect(to client: CMIOExtensionClient) throws
+	{
+		print("client \(client.signingID) connected")
 	}
 	
-	func disconnect(from client: CMIOExtensionClient) {
-		
+	func disconnect(from client: CMIOExtensionClient)
+	{
+		print("client \(client.signingID) disconnected")
 	}
 	
 	var availableProperties: Set<CMIOExtensionProperty> {

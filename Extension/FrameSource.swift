@@ -56,8 +56,8 @@ class DebugFrameSource : FrameSource
 {
 	var bufferPool: CVPixelBufferPool!
 	var bufferAuxAttributes: NSDictionary!
-	let width : Int32 = 640
-	let height : Int32 = 480
+	let width : Int32 = 1000
+	let height : Int32 = 1000
 	let frameRate = 60
 	let pixelFormat = kCVPixelFormatType_32BGRA
 	var videoFormat : CMFormatDescription!
@@ -77,7 +77,7 @@ class DebugFrameSource : FrameSource
 	let textColor = NSColor.white
 	let fontSize = 24.0
 	var textFont : NSFont { NSFont.systemFont(ofSize: fontSize)}
-	let PoolMaxAllocations = 99
+	let PoolMaxAllocations = 13
 	
 	init(displayText:String,clearColour:CGColor)
 	{
@@ -169,7 +169,6 @@ class DebugFrameSource : FrameSource
 								   //bitmapInfo: UInt32(CGImageAlphaInfo.noneSkipFirst.rawValue) | UInt32(CGImageByteOrderInfo.order32Little.rawValue))
 								   bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue)
 		{
-			
 			let graphicsContext = NSGraphicsContext(cgContext: context, flipped: false)
 			NSGraphicsContext.saveGraphicsState()
 			NSGraphicsContext.current = graphicsContext
