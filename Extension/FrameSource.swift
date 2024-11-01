@@ -77,7 +77,7 @@ class DebugFrameSource : FrameSource
 	let textColor = NSColor.white
 	let fontSize = 24.0
 	var textFont : NSFont { NSFont.systemFont(ofSize: fontSize)}
-
+	let PoolMaxAllocations = 99
 	
 	init(displayText:String,clearColour:CGColor)
 	{
@@ -99,7 +99,7 @@ class DebugFrameSource : FrameSource
 			kCVPixelBufferIOSurfacePropertiesKey: [:]
 		]
 		CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, pixelBufferAttributes, &bufferPool )
-		bufferAuxAttributes = [kCVPixelBufferPoolAllocationThresholdKey: 5]
+		bufferAuxAttributes = [kCVPixelBufferPoolAllocationThresholdKey: PoolMaxAllocations]
 
 		paragraphStyle.alignment = NSTextAlignment.center
 		textFontAttributes = [:]
