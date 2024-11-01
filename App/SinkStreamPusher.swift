@@ -4,9 +4,144 @@ import CoreMediaIO
 import SystemExtensions
 
 
+struct CameraStreamMeta
+{
+	var StreamId : CMIOStreamID
+}
+
 //	RAII interface to camera
 class CameraWithSinkInterface
 {
+	var device : AVCaptureDevice
+	var sinkQueue: CMSimpleQueue!
+
+	var startedDeviceAndStream : (CMIOObjectID,CMIOStreamID)? = nil
+	
+	init(device: AVCaptureDevice) throws
+	{
+		self.device = device
+		
+		//	find the sink stream id
+		let SinkStreamId = try GetSinkStreamId()
+		
+		//	bind to it
+		try BindToSinkQueue(sinkStreamId: SinkStreamId)
+	}
+	
+	deinit
+	{
+		Free()
+	}
+	
+	func Free()
+	{
+		//	need to remove our pointer to CMIOStreamCopyBufferQueue
+		print("Cleanup CMIOStreamCopyBufferQueue pointer reference")
+		
+		if let startedDeviceAndStream
+		{
+			let deviceId = startedDeviceAndStream.0
+			let streamId = startedDeviceAndStream.1
+			let StopDeviceResult = CMIODeviceStopStream(deviceId, streamId)
+			if StopDeviceResult != 0
+			{
+				print("Warning CMIODeviceStopStream(\(deviceId),\(streamId)) failed; \(StopDeviceResult)")
+			}
+		}
+		startedDeviceAndStream = nil
+	}
+	
+	func GetCmioDeviceId(uid:String) throws -> CMIOObjectID
+	{
+		var dataSize: UInt32 = 0
+		var devices = [CMIOObjectID]()
+		var dataUsed: UInt32 = 0
+		var opa = CMIOObjectPropertyAddress( CMIOObjectPropertySelector(kCMIOHardwarePropertyDevices), .global, .main)
+		CMIOObjectGetPropertyDataSize(CMIOObjectPropertySelector(kCMIOObjectSystemObject), &opa, 0, nil, &dataSize);
+		let nDevices = Int(dataSize) / MemoryLayout<CMIOObjectID>.size
+		devices = [CMIOObjectID](repeating: 0, count: Int(nDevices))
+		CMIOObjectGetPropertyData(CMIOObjectPropertySelector(kCMIOObjectSystemObject), &opa, 0, nil, dataSize, &dataUsed, &devices);
+		for deviceObjectID in devices
+		{
+			opa.mSelector = CMIOObjectPropertySelector(kCMIODevicePropertyDeviceUID)
+			CMIOObjectGetPropertyDataSize(deviceObjectID, &opa, 0, nil, &dataSize)
+			var name: CFString = "" as NSString
+			//CMIOObjectGetPropertyData(deviceObjectID, &opa, 0, nil, UInt32(MemoryLayout<CFString>.size), &dataSize, &name);
+			CMIOObjectGetPropertyData(deviceObjectID, &opa, 0, nil, dataSize, &dataUsed, &name);
+			if String(name) == uid {
+				return deviceObjectID
+			}
+		}
+		throw RuntimeError("Not found")
+	}
+	
+	func GetInputStreamIds(deviceId: CMIODeviceID) -> [CMIOStreamID]
+	{
+		var dataSize: UInt32 = 0
+		var dataUsed: UInt32 = 0
+		var opa = CMIOObjectPropertyAddress(CMIOObjectPropertySelector(kCMIODevicePropertyStreams), .global, .main)
+		CMIOObjectGetPropertyDataSize(deviceId, &opa, 0, nil, &dataSize);
+		let numberStreams = Int(dataSize) / MemoryLayout<CMIOStreamID>.size
+		var streamIds = [CMIOStreamID](repeating: 0, count: numberStreams)
+		CMIOObjectGetPropertyData(deviceId, &opa, 0, nil, dataSize, &dataUsed, &streamIds)
+		return streamIds
+	}
+	
+	func GetSinkStreamId() throws -> CMIOStreamID
+	{
+		let DeviceUid = try GetCmioDeviceId(uid: device.uniqueID)
+		
+		let StreamIds = GetInputStreamIds(deviceId: DeviceUid)
+
+		//	todo: more sophisticated sink stream detection
+		//		ie. read a property we're looking for to identify it
+		return StreamIds[1]
+	}
+	
+	func BindToSinkQueue(sinkStreamId:CMIOStreamID) throws
+	{
+		//	allocate a pointer queue and save it
+		let pointerQueue = UnsafeMutablePointer<Unmanaged<CMSimpleQueue>?>.allocate(capacity: 1)
+		
+		// see https://stackoverflow.com/questions/53065186/crash-when-accessing-refconunsafemutablerawpointer-inside-cgeventtap-callback
+		//let SelfRef = UnsafeMutableRawPointer(Unmanaged.passRetained(self).toOpaque())
+		let SelfRef = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+		
+		guard let queue = pointerQueue.pointee else
+		{
+			throw RuntimeError("Stream queue missing pointer upon allocation")
+		}
+		
+		//	gr: maybe we should be saving pointerQueue as a reference counted variable, if we're keeping an unretained one...
+		sinkQueue = queue.takeUnretainedValue()
+		
+		
+		
+		let OnQueueAltered : CMIODeviceStreamQueueAlteredProc =
+		{
+			(sinkStream: CMIOStreamID, buf: UnsafeMutableRawPointer?, refCon: UnsafeMutableRawPointer?) in
+			
+			let ThisPointer = Unmanaged<CameraWithSinkInterface>.fromOpaque(refCon!)
+			let This = ThisPointer.takeUnretainedValue()
+			//This.readyToEnqueue = true
+			print("Queue altered")
+		}
+		
+		//	gr: this copies.... TO our pointer? to get a queue for....?
+		let Result = CMIOStreamCopyBufferQueue(sinkStreamId,OnQueueAltered,SelfRef,pointerQueue)
+		if Result != 0
+		{
+			throw RuntimeError("Error \(Result) from copy buffer queue")
+		}
+		
+		let deviceId = try GetCmioDeviceId(uid: device.uniqueID)
+		let StartDeviceResult = CMIODeviceStartStream(deviceId, sinkStreamId)
+		if StartDeviceResult != 0
+		{
+			throw RuntimeError("Error \(StartDeviceResult) from starting sink stream")
+		}
+		startedDeviceAndStream = (deviceId,sinkStreamId)
+	}
 }
 
 //	this class looks for a camera wth a sink stream we can push to
@@ -57,8 +192,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 	var ReadPropertyIntervalSecs = 2.0
 	
 	var sourceStream: CMIOStreamID?
-	var sinkStream: CMIOStreamID?
-	var sinkQueue: CMSimpleQueue?
+	//var sinkStream: CMIOStreamID?
 	
 	init(cameraName:String/*,log: @escaping (_ message:String)->()*/)
 	{
@@ -108,7 +242,6 @@ class SinkStreamPusher : NSObject, ObservableObject
 			{
 				threadStateString = "Looking for camera..."
 				let Camera = try await FindCamera()
-				try await FindSinkStream(camera:Camera)
 				try await SendFramesToStream(camera:Camera)
 			}
 			catch let Error
@@ -122,17 +255,31 @@ class SinkStreamPusher : NSObject, ObservableObject
 		}
 	}
 	
-	func FindCamera() async throws -> CameraWithSinkInterface
+	func GetCameraDeviceWithName(_ name: String) -> AVCaptureDevice?
 	{
-		try! await Task.sleep( for:.seconds(1) )
-		//	look for device with name
-		throw RuntimeError("todo: find camera")
+		var devices: [AVCaptureDevice]?
+		if #available(macOS 10.15, *) {
+			let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.externalUnknown],
+																	mediaType: .video,
+																	position: .unspecified)
+			devices = discoverySession.devices
+		} else {
+			// Fallback on earlier versions
+			devices = AVCaptureDevice.devices(for: .video)
+		}
+		guard let devices = devices else { return nil }
+		return devices.first { $0.localizedName == name}
 	}
 	
-	func FindSinkStream(camera:CameraWithSinkInterface) async throws
+	func FindCamera() async throws -> CameraWithSinkInterface
 	{
-		//	look for device with name
-		throw RuntimeError("todo: find sink stream")
+		let Device = GetCameraDeviceWithName(targetCameraName)
+		guard let Device else
+		{
+			throw RuntimeError("No camera named \(targetCameraName)")
+		}
+
+		return try CameraWithSinkInterface(device:Device)
 	}
 	
 	func SendFramesToStream(camera:CameraWithSinkInterface) async throws
@@ -238,6 +385,8 @@ class SinkStreamPusher : NSObject, ObservableObject
 			}
 		}
 	}
+ 
+
 	
 	func getDevice(name: String) -> AVCaptureDevice? {
 		print("getDevice name=",name)
@@ -255,39 +404,8 @@ class SinkStreamPusher : NSObject, ObservableObject
 		return devices.first { $0.localizedName == name}
 	}
 	
-	func getCMIODevice(uid: String) -> CMIOObjectID? {
-		var dataSize: UInt32 = 0
-		var devices = [CMIOObjectID]()
-		var dataUsed: UInt32 = 0
-		var opa = CMIOObjectPropertyAddress(CMIOObjectPropertySelector(kCMIOHardwarePropertyDevices), .global, .main)
-		CMIOObjectGetPropertyDataSize(CMIOObjectPropertySelector(kCMIOObjectSystemObject), &opa, 0, nil, &dataSize);
-		let nDevices = Int(dataSize) / MemoryLayout<CMIOObjectID>.size
-		devices = [CMIOObjectID](repeating: 0, count: Int(nDevices))
-		CMIOObjectGetPropertyData(CMIOObjectPropertySelector(kCMIOObjectSystemObject), &opa, 0, nil, dataSize, &dataUsed, &devices);
-		for deviceObjectID in devices {
-			opa.mSelector = CMIOObjectPropertySelector(kCMIODevicePropertyDeviceUID)
-			CMIOObjectGetPropertyDataSize(deviceObjectID, &opa, 0, nil, &dataSize)
-			var name: CFString = "" as NSString
-			//CMIOObjectGetPropertyData(deviceObjectID, &opa, 0, nil, UInt32(MemoryLayout<CFString>.size), &dataSize, &name);
-			CMIOObjectGetPropertyData(deviceObjectID, &opa, 0, nil, dataSize, &dataUsed, &name);
-			if String(name) == uid {
-				return deviceObjectID
-			}
-		}
-		return nil
-	}
 	
-	func getInputStreams(deviceId: CMIODeviceID) -> [CMIOStreamID]
-	{
-		var dataSize: UInt32 = 0
-		var dataUsed: UInt32 = 0
-		var opa = CMIOObjectPropertyAddress(CMIOObjectPropertySelector(kCMIODevicePropertyStreams), .global, .main)
-		CMIOObjectGetPropertyDataSize(deviceId, &opa, 0, nil, &dataSize);
-		let numberStreams = Int(dataSize) / MemoryLayout<CMIOStreamID>.size
-		var streamIds = [CMIOStreamID](repeating: 0, count: numberStreams)
-		CMIOObjectGetPropertyData(deviceId, &opa, 0, nil, dataSize, &dataUsed, &streamIds)
-		return streamIds
-	}
+	
 	func connectToCamera()
 	{
 		if let device = getDevice(name: cameraName), let deviceObjectId = getCMIODevice(uid: device.uniqueID) {
@@ -503,7 +621,7 @@ extension FourCharCode: ExpressibleByStringLiteral {
 		return String(cString: cString)
 	}
 }
-
+*/
 public extension CMIOObjectPropertyAddress {
 	init(_ selector: CMIOObjectPropertySelector,
 		 _ scope: CMIOObjectPropertyScope = .anyScope,
@@ -538,4 +656,4 @@ public extension CMIOObjectPropertyElement {
 	static let anyElement = CMIOObjectPropertyElement(kCMIOObjectPropertyElementWildcard)
 }
 
-*/
+
