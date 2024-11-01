@@ -4,9 +4,41 @@ import Cocoa
 
 struct Frame
 {
-	public var pixels : CVPixelBuffer
-	public var format : CMFormatDescription
+	public var pixels : CVPixelBuffer?
+	public var format : CMFormatDescription?
+
+	public var sample : CMSampleBuffer?
 	public var time : CMTime
+	public var timeNanos : UInt64
+	{
+		return UInt64(time.seconds * Double(NSEC_PER_SEC))
+	}
+	
+	public var sampleBuffer : CMSampleBuffer
+	{
+		get throws
+		{
+			if let sample
+			{
+				return sample
+			}
+			
+			if ( pixels == nil )
+			{
+				throw RuntimeError("Samplebuffer and pixelbuffer are both null")
+			}
+			
+			var sbuf: CMSampleBuffer!
+			var timingInfo = CMSampleTimingInfo()
+			timingInfo.presentationTimeStamp = time
+			let err = CMSampleBufferCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixels!, dataReady: true, makeDataReadyCallback: nil, refcon: nil, formatDescription: format!, sampleTiming: &timingInfo, sampleBufferOut: &sbuf)
+			if err != 0
+			{
+				throw RuntimeError("Error creating sample buffer \(err)")
+			}
+			return sbuf
+		}
+	}
 }
 
 protocol FrameSource
@@ -17,9 +49,6 @@ protocol FrameSource
 	var videoFormat : CMFormatDescription! { get }
 	var maxFrameDuration : CMTime { get }
 	*/
-	//	not the best approach atm, but until we do some dumb
-	//	render-text to the parent, have the ability to set some external text
-	var warningText : String? { get set }
 }
 
 

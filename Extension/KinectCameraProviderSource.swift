@@ -23,19 +23,26 @@ class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 {
 	private(set) var provider: CMIOExtensionProvider!
 	
-	var devices : [String:KinectDeviceSource] = [:]
-	
+	var devices : [String:CMIOExtensionDeviceSource] = [:]
+	var sinkDevice : SinkDeviceSource
 	
 	
 	init(clientQueue: DispatchQueue?)
 	{
+		//	make the sink device
+		sinkDevice = SinkDeviceSource()
+
 		super.init()
+
 		provider = CMIOExtensionProvider(source: self, clientQueue: clientQueue)
 
+		try! provider.addDevice(sinkDevice.device)
+		
 		Task
 		{
 			await WatchForNewDevicesThread()
 		}
+		
 	}
 	
 	func WatchForNewDevicesThread() async
@@ -58,7 +65,7 @@ class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 	
 	func OnFoundDevice(_ deviceMeta:PopCameraDevice.EnumDeviceMeta) throws
 	{
-		func MatchDevice(element:Dictionary<String,KinectDeviceSource>.Element) -> Bool
+		func MatchDevice(element:Dictionary<String,CMIOExtensionDeviceSource>.Element) -> Bool
 		{
 			return element.key == deviceMeta.Serial
 		}

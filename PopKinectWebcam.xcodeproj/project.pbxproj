@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BF2317EE2CD3BC9F00A94ABA /* SinkStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2317ED2CD3BC9F00A94ABA /* SinkStream.swift */; };
+		BF2317F02CD5014500A94ABA /* SinkDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2317EF2CD5014500A94ABA /* SinkDevice.swift */; };
 		BF76118E2CBC0AAB00EB4BE1 /* FrameSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */; };
 		BF7611922CBD69AD00EB4BE1 /* KinectDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7611912CBD69AD00EB4BE1 /* KinectDevice.swift */; };
 		BF7CEF7E2CB6CB9D00A20F77 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
@@ -60,6 +62,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		BF2317ED2CD3BC9F00A94ABA /* SinkStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SinkStream.swift; sourceTree = "<group>"; };
+		BF2317EF2CD5014500A94ABA /* SinkDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SinkDevice.swift; sourceTree = "<group>"; };
 		BF3311E42CB6A39400D3936A /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 		BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSource.swift; sourceTree = "<group>"; };
 		BF76118F2CBD235000EB4BE1 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
@@ -166,14 +170,16 @@
 		F990A87C286F666500159819 /* Extension */ = {
 			isa = PBXGroup;
 			children = (
+				F990A882286F666500159819 /* Extension.entitlements */,
+				BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */,
+				F990A881286F666500159819 /* Info.plist */,
+				F990A87D286F666500159819 /* KinectCameraProviderSource.swift */,
 				BF7611912CBD69AD00EB4BE1 /* KinectDevice.swift */,
 				BFDA39B02CC5B620003C8172 /* KinectStream.swift */,
-				F990A87D286F666500159819 /* KinectCameraProviderSource.swift */,
-				BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */,
-				BFDA39B22CC67666003C8172 /* PopCameraDeviceFrameSource.swift */,
 				F990A87F286F666500159819 /* main.swift */,
-				F990A881286F666500159819 /* Info.plist */,
-				F990A882286F666500159819 /* Extension.entitlements */,
+				BFDA39B22CC67666003C8172 /* PopCameraDeviceFrameSource.swift */,
+				BF2317EF2CD5014500A94ABA /* SinkDevice.swift */,
+				BF2317ED2CD3BC9F00A94ABA /* SinkStream.swift */,
 			);
 			path = Extension;
 			sourceTree = "<group>";
@@ -297,6 +303,8 @@
 				BF7611922CBD69AD00EB4BE1 /* KinectDevice.swift in Sources */,
 				F990A880286F666500159819 /* main.swift in Sources */,
 				F990A87E286F666500159819 /* KinectCameraProviderSource.swift in Sources */,
+				BF2317F02CD5014500A94ABA /* SinkDevice.swift in Sources */,
+				BF2317EE2CD3BC9F00A94ABA /* SinkStream.swift in Sources */,
 				BF76118E2CBC0AAB00EB4BE1 /* FrameSource.swift in Sources */,
 				BF7CEF7E2CB6CB9D00A20F77 /* RuntimeError.swift in Sources */,
 				BFDA39B12CC5B620003C8172 /* KinectStream.swift in Sources */,

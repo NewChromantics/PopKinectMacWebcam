@@ -109,8 +109,7 @@ class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 	
 	func OnError(_ error:String?)
 	{
-		var source = frameSource
-		source.warningText = error
+		//	todo
 	}
 	
 	func FrameLoop() async
@@ -127,15 +126,7 @@ class KinectStreamSource: NSObject, CMIOExtensionStreamSource
 			{
 				let frame = try await frameSource.PopNewFrame()
 				
-				var sbuf: CMSampleBuffer!
-				var timingInfo = CMSampleTimingInfo()
-				timingInfo.presentationTimeStamp = frame.time
-				let err = CMSampleBufferCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: frame.pixels, dataReady: true, makeDataReadyCallback: nil, refcon: nil, formatDescription: frame.format, sampleTiming: &timingInfo, sampleBufferOut: &sbuf)
-				if err != 0
-				{
-					throw RuntimeError("Error creating sample buffer \(err)")
-				}
-				self.stream.send(sbuf, discontinuity: [], hostTimeInNanoseconds: UInt64(timingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+				try self.stream.send(frame.sampleBuffer, discontinuity: [], hostTimeInNanoseconds: frame.timeNanos )
 				
 				//	remove error
 				self.ClearError()
