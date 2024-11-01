@@ -158,12 +158,6 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 	{
 	}
 	
-	func OnNewClient(client: CMIOExtensionClient)
-	{
-		print("Client joined parent stream \(client.signingID)")
-		Clients.append(client)
-	}
-	
 	//	gr: this doesn't get called
 	func authorizedToStartStream(for client: CMIOExtensionClient) -> Bool
 	{
@@ -204,7 +198,7 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 	var supportedKinectFormats : [StreamImageFormat]
 
 	//	we are/not supposed to be streaming
-	var streamingRequested = false
+	var sinkPusherStarted = false
 	
 	init(localizedStreamName: String, streamID: UUID, device: CMIOExtensionDevice, formats:[PopCameraDevice.StreamImageFormat])
 	{
@@ -278,20 +272,17 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 	func authorizedToStartStream(for client: CMIOExtensionClient) -> Bool
 	{
 		//	the client here is photobooth, not SinkPusher...
-		
-		// An opportunity to inspect the client info and decide if it should be allowed to start the stream.
-		sinkFrameSource.OnNewClient(client:client)
 		return true
 	}
 	
 	func startStream() throws
 	{
-		self.streamingRequested = true
+		self.sinkPusherStarted = true
 	}
 	
 	func stopStream() throws
 	{
-		self.streamingRequested = false
+		self.sinkPusherStarted = false
 	}
 	
 	func ClearError()
@@ -328,12 +319,14 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 	{
 		while ( true )
 		{
-			if !streamingRequested
+			/*	gr allow consume() call to error with its specific error
+			if !sinkPusherStarted
 			{
 				//	todo: wait on a wake-up semaphore
 				try! await Task.sleep(for: .seconds(1))
 				continue
 			}
+			 */
 
 			//	if we have some display text, display a frame of that
 			//	then do normal frame output which may clear this text (if its an error)
