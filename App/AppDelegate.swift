@@ -2,11 +2,16 @@ import SwiftUI
 import Foundation
 import AppKit	//	uikit on ios
 
+var TargetCameraName = "Sink Consumer Device"
+
+
 @main
 struct PopShaderCameraApp: App
 {
-	init() {
-		
+	var sinkStreamPusher = SinkStreamPusher(cameraName: TargetCameraName)
+	
+	init()
+	{
 	}
 	
 	@NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
@@ -16,6 +21,7 @@ struct PopShaderCameraApp: App
 		WindowGroup
 		{
 			AppView()
+				.environmentObject(sinkStreamPusher)
 		}
 		
 	}

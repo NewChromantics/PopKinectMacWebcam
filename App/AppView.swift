@@ -28,6 +28,7 @@ class LogBuffer : ObservableObject
 struct AppView : View
 {
 	var extensionManager : ExtensionManager {	return extensionManagerInstance!	}
+	@EnvironmentObject var sinkStreamPusher : SinkStreamPusher
 	@ObservedObject var cameraDebug = LogBuffer()
 
 	init()
@@ -151,6 +152,11 @@ struct AppView : View
 				Button("Remove Extension",action:OnDeactivateExtension)
 				Button("List Cameras",action:ListCameraNames)
 				Button("List Kinects",action:ListKinectNames)
+			}
+			
+			HStack()
+			{
+				Text("Pusher state: \(sinkStreamPusher.threadState)")
 			}
 			
 			ScrollView
