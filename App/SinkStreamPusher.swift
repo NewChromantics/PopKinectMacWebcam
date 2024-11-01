@@ -13,7 +13,12 @@ struct CameraStreamMeta
 class CameraWithSinkInterface
 {
 	var device : AVCaptureDevice
-	var sinkQueue: CMSimpleQueue!
+	var sinkQueue: CMSimpleQueue?
+	{
+		return sinkQueuePoiner.pointee?.takeUnretainedValue()
+	}
+	var sinkQueuePoiner : UnsafeMutablePointer<Unmanaged<CMSimpleQueue>?>!
+	var queueAlteredCount = 0
 
 	var startedDeviceAndStream : (CMIOObjectID,CMIOStreamID)? = nil
 	
@@ -36,7 +41,11 @@ class CameraWithSinkInterface
 	func Free()
 	{
 		//	need to remove our pointer to CMIOStreamCopyBufferQueue
-		print("Cleanup CMIOStreamCopyBufferQueue pointer reference")
+		if ( sinkQueuePoiner != nil )
+		{
+			sinkQueuePoiner.deallocate()
+			sinkQueuePoiner = nil
+		}
 		
 		if let startedDeviceAndStream
 		{
@@ -100,21 +109,18 @@ class CameraWithSinkInterface
 	
 	func BindToSinkQueue(sinkStreamId:CMIOStreamID) throws
 	{
-		//	allocate a pointer queue and save it
-		let pointerQueue = UnsafeMutablePointer<Unmanaged<CMSimpleQueue>?>.allocate(capacity: 1)
+		//	allocate a pointer that we'll pass to CMIOStreamCopyBufferQueue, which will set it
+		//	gr: todo: free this allocation!
+		//	gr: this is 0xbebebebe with asan, or 0xaaaaa for memory scribble
+		//		normally its nil
+		sinkQueuePoiner = UnsafeMutablePointer<Unmanaged<CMSimpleQueue>?>.allocate(capacity: 10)
+		//	gr: clear pointer in malloc scribble mode etc so an untouched pointer is detected
+		sinkQueuePoiner.pointee = nil
 		
+		//	get pointer for callback
 		// see https://stackoverflow.com/questions/53065186/crash-when-accessing-refconunsafemutablerawpointer-inside-cgeventtap-callback
 		//let SelfRef = UnsafeMutableRawPointer(Unmanaged.passRetained(self).toOpaque())
 		let SelfRef = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
-		
-		guard let queue = pointerQueue.pointee else
-		{
-			throw RuntimeError("Stream queue missing pointer upon allocation")
-		}
-		
-		//	gr: maybe we should be saving pointerQueue as a reference counted variable, if we're keeping an unretained one...
-		sinkQueue = queue.takeUnretainedValue()
-		
 		
 		
 		let OnQueueAltered : CMIODeviceStreamQueueAlteredProc =
@@ -124,14 +130,22 @@ class CameraWithSinkInterface
 			let ThisPointer = Unmanaged<CameraWithSinkInterface>.fromOpaque(refCon!)
 			let This = ThisPointer.takeUnretainedValue()
 			//This.readyToEnqueue = true
-			print("Queue altered")
+			This.queueAlteredCount += 1
+			print("Queue altered \(This.queueAlteredCount)th time")
 		}
 		
+		//	this writes an address into pointerQueue
 		//	gr: this copies.... TO our pointer? to get a queue for....?
-		let Result = CMIOStreamCopyBufferQueue(sinkStreamId,OnQueueAltered,SelfRef,pointerQueue)
+		let Result = CMIOStreamCopyBufferQueue(sinkStreamId,OnQueueAltered,SelfRef,sinkQueuePoiner)
 		if Result != 0
 		{
 			throw RuntimeError("Error \(Result) from copy buffer queue")
+		}
+		
+		//	did it write a new queue value?
+		if sinkQueuePoiner.pointee == nil
+		{
+			throw RuntimeError("CMIOStreamCopyBufferQueue didnt write queue pointer")
 		}
 		
 		let deviceId = try GetCmioDeviceId(uid: device.uniqueID)
@@ -141,6 +155,37 @@ class CameraWithSinkInterface
 			throw RuntimeError("Error \(StartDeviceResult) from starting sink stream")
 		}
 		startedDeviceAndStream = (deviceId,sinkStreamId)
+	}
+	
+	func Send(_ sample:CMSampleBuffer) throws
+	{
+		/*
+		if ( self.queueAlteredCount == 0 )
+		{
+			print("Queue not ready")
+			return
+		}
+		*/
+		guard let queue = self.sinkQueue else
+		{
+			throw RuntimeError("Queue not allocated yet")
+		}
+		
+		var QueueCount = CMSimpleQueueGetCount(queue)
+		var QueueCapacity = CMSimpleQueueGetCapacity(queue)
+
+		guard QueueCount < QueueCapacity else
+		{
+			//throw RuntimeError("Queue is at capacity \(QueueCount)/\(QueueCapacity)")
+			print("Queue is at capacity \(QueueCount)/\(QueueCapacity)")
+			return
+		}
+		let samplePointer = UnsafeMutableRawPointer(Unmanaged.passRetained(sample).toOpaque())
+		let QueueResult = CMSimpleQueueEnqueue(queue, element: samplePointer)
+		
+		QueueCount = CMSimpleQueueGetCount(queue)
+		QueueCapacity = CMSimpleQueueGetCapacity(queue)
+		print("Queued new sample \(QueueCount)/\(QueueCapacity) result=\(QueueResult)")
 	}
 }
 
@@ -201,6 +246,9 @@ class SinkStreamPusher : NSObject, ObservableObject
 		self.targetCameraName = cameraName
 		
 		super.init()
+				
+		InitBufferPool()
+		
 		/*
 		self.registerForDeviceNotifications()
 		self.makeDevicesVisible()
@@ -242,7 +290,12 @@ class SinkStreamPusher : NSObject, ObservableObject
 			{
 				threadStateString = "Looking for camera..."
 				let Camera = try await FindCamera()
-				try await SendFramesToStream(camera:Camera)
+				threadStateString = "Got Camera, sending frame..."
+				while ( !Freed )
+				{
+					try SendNextFrameToStream(camera:Camera)
+					try! await Task.sleep( for:.seconds(1/30.0) )
+				}
 			}
 			catch let Error
 			{
@@ -253,6 +306,27 @@ class SinkStreamPusher : NSObject, ObservableObject
 				try! await Task.sleep( for:.seconds(1) )
 			}
 		}
+	}
+	
+	func InitBufferPool()
+	{
+		let fixedCamWidth : Int32 = 123
+		let fixedCamHeight : Int32 = 123
+		let dims = CMVideoDimensions(width: fixedCamWidth, height: fixedCamHeight)
+		CMVideoFormatDescriptionCreate(
+			allocator: kCFAllocatorDefault,
+			codecType: kCVPixelFormatType_32BGRA,
+			width: dims.width, height: dims.height, extensions: nil, formatDescriptionOut: &_videoDescription)
+		
+		var pixelBufferAttributes: NSDictionary!
+		pixelBufferAttributes = [
+			kCVPixelBufferWidthKey: dims.width,
+			kCVPixelBufferHeightKey: dims.height,
+			kCVPixelBufferPixelFormatTypeKey: _videoDescription.mediaSubType,
+			kCVPixelBufferIOSurfacePropertiesKey: [:]
+		]
+		
+		CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, pixelBufferAttributes, &_bufferPool)
 	}
 	
 	func GetCameraDeviceWithName(_ name: String) -> AVCaptureDevice?
@@ -282,9 +356,20 @@ class SinkStreamPusher : NSObject, ObservableObject
 		return try CameraWithSinkInterface(device:Device)
 	}
 	
-	func SendFramesToStream(camera:CameraWithSinkInterface) async throws
+	func SendNextFrameToStream(camera:CameraWithSinkInterface)  throws
 	{
-		throw RuntimeError("todo: get frames to send to sink")
+		guard let image = testImage else
+		{
+			throw RuntimeError("Missing test image")
+		}
+		guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else
+		{
+			throw RuntimeError("failed to get image to send to sink")
+		}
+		
+		let Sample = try GetSampleBuffer(cgImage)
+		
+		try camera.Send(Sample)
 	}
 	
 /*
@@ -499,8 +584,55 @@ class SinkStreamPusher : NSObject, ObservableObject
 		NotificationCenter.default.addObserver(forName: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil, queue: nil, using:OnNewCameraDeviceConnected )
 	}
 	
+	*/
+	func GetSampleBuffer(_ image:CGImage) throws -> CMSampleBuffer
+	{
+		var pixelBuffer: CVPixelBuffer?
+		let CreatePixelBufferResult = CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(kCFAllocatorDefault, self._bufferPool, self._bufferAuxAttributes, &pixelBuffer)
+		if ( CreatePixelBufferResult != 0 )
+		{
+			throw RuntimeError("Failed to create pixel buffer result=\(CreatePixelBufferResult)")
+		}
+		guard let pixelBuffer else
+		{
+			throw RuntimeError("Failed to create pixel buffer null")
+		}
+		
+		CVPixelBufferLockBaseAddress(pixelBuffer, [])
+		
+		let pixelData = CVPixelBufferGetBaseAddress(pixelBuffer)
+		let width = CVPixelBufferGetWidth(pixelBuffer)
+		let height = CVPixelBufferGetHeight(pixelBuffer)
+		let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
+		// optimizing context: interpolationQuality and bitmapInfo
+		// see https://stackoverflow.com/questions/7560979/cgcontextdrawimage-is-extremely-slow-after-large-uiimage-drawn-into-it
+		if let context = CGContext(data: pixelData,
+								   width: width,
+								   height: height,
+								   bitsPerComponent: 8,
+								   bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
+								   space: rgbColorSpace,
+								   //bitmapInfo: UInt32(CGImageAlphaInfo.noneSkipFirst.rawValue) | UInt32(CGImageByteOrderInfo.order32Little.rawValue))
+								   bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue)
+		{
+			context.interpolationQuality = .low
+			context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+		}
+		CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+			
+		var sbuf: CMSampleBuffer!
+		var timingInfo = CMSampleTimingInfo()
+		timingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
+		let CreateSampleBufferResult = CMSampleBufferCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer, dataReady: true, makeDataReadyCallback: nil, refcon: nil, formatDescription: self._videoDescription, sampleTiming: &timingInfo, sampleBufferOut: &sbuf)
+		if ( CreateSampleBufferResult != 0 )
+		{
+			throw RuntimeError("Failed to create sample buffer result=\(CreateSampleBufferResult)")
+		}
+		
+		return sbuf
+	}
 	
-	
+	/*
 	func enqueue(_ queue: CMSimpleQueue, _ image: CGImage) {
 		guard CMSimpleQueueGetCount(queue) < CMSimpleQueueGetCapacity(queue) else {
 			print("error enqueuing")

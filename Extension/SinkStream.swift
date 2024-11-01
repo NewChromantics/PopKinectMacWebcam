@@ -61,6 +61,20 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 		self.running = false
 	}
 	
+	func ConsumeFrame(client:CMIOExtensionClient) async throws -> CMSampleBuffer
+	{
+		//	make nicer error
+		do
+		{
+			let (Sample, SequenceNumber, Disconinuity, HasMoreSamples) = try await sinkStream.consumeSampleBuffer(from: client)
+			return Sample
+		}
+		catch let Error
+		{
+			throw RuntimeError("ConsumeSampleBuffer: \(Error.localizedDescription)")
+		}
+	}
+	
 	func PopNewFrame() async throws -> Frame
 	{
 		while ( running )
@@ -76,22 +90,18 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 			{
 				//	sample is CMSampleBuffer
 				//	cannot be null, so will this throw if no sample?
-				let (Sample, SequenceNumber, Disconinuity, HasMoreSamples) = try await sinkStream.consumeSampleBuffer(from: client)
-				
-				if ( Sample != nil )
-				{
-					let now = CMClockGetTime(CMClockGetHostTimeClock())
-					/*
-					 //self.lastTimingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
-					 let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds: UInt64(self.lastTimingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-					 if self._streamingCounter > 0 {
-					 self._streamSource.stream.send(sbuf!, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf!.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-					 }
-					 self._streamSink.stream.notifyScheduledOutputChanged(output)
-					 */
-					var frame = Frame(sample:Sample,time:now)
-					return frame
-				}
+				let Sample = try await ConsumeFrame(client: client)
+				let now = CMClockGetTime(CMClockGetHostTimeClock())
+				/*
+				 //self.lastTimingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
+				 let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds: UInt64(self.lastTimingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+				 if self._streamingCounter > 0 {
+				 self._streamSource.stream.send(sbuf!, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf!.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+				 }
+				 self._streamSink.stream.notifyScheduledOutputChanged(output)
+				 */
+				var frame = Frame(sample:Sample,time:now)
+				return frame
 			}
 			
 			//	no result (or no clients), pause
@@ -148,6 +158,13 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 	{
 	}
 	
+	func OnNewClient(client: CMIOExtensionClient)
+	{
+		print("Client joined parent stream \(client.signingID)")
+		Clients.append(client)
+	}
+	
+	//	gr: this doesn't get called
 	func authorizedToStartStream(for client: CMIOExtensionClient) -> Bool
 	{
 		//	gr: presumably this client app
@@ -159,11 +176,13 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 	func startStream() throws
 	{
 		//	start consuming loop if we havent
+		print("Sink stream start")
 	}
 	
 	func stopStream() throws
 	{
 		//	if a client is pushing frames, why stop?
+		print("Sink stream stop")
 	}
 }
 
@@ -176,7 +195,7 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 //	rather than having higher level code manage 2 sibling streams (sink & output)
 class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 {
-	var sinkFrameSource : FrameSource
+	var sinkFrameSource : SinkFrameSource
 	var debugFrameSource : FrameSource	//	display text
 	var displayText : String? = nil
 
@@ -258,7 +277,10 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 	//	virtual
 	func authorizedToStartStream(for client: CMIOExtensionClient) -> Bool
 	{
+		//	the client here is photobooth, not SinkPusher...
+		
 		// An opportunity to inspect the client info and decide if it should be allowed to start the stream.
+		sinkFrameSource.OnNewClient(client:client)
 		return true
 	}
 	
