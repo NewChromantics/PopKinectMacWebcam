@@ -10,6 +10,7 @@
 		BF2317EE2CD3BC9F00A94ABA /* SinkStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2317ED2CD3BC9F00A94ABA /* SinkStream.swift */; };
 		BF2317F02CD5014500A94ABA /* SinkDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2317EF2CD5014500A94ABA /* SinkDevice.swift */; };
 		BF2317F42CD505CD00A94ABA /* SinkStreamPusher.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2317F32CD505CD00A94ABA /* SinkStreamPusher.swift */; };
+		BF2317F52CD5579F00A94ABA /* FrameSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */; };
 		BF76118E2CBC0AAB00EB4BE1 /* FrameSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */; };
 		BF7611922CBD69AD00EB4BE1 /* KinectDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7611912CBD69AD00EB4BE1 /* KinectDevice.swift */; };
 		BF7CEF7E2CB6CB9D00A20F77 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
@@ -295,6 +296,7 @@
 				F990A869286F663F00159819 /* AppDelegate.swift in Sources */,
 				BF7CEF832CB7DA4C00A20F77 /* ExtensionManager.swift in Sources */,
 				BF7CEF852CB7DB7900A20F77 /* AppView.swift in Sources */,
+				BF2317F52CD5579F00A94ABA /* FrameSource.swift in Sources */,
 				BF2317F42CD505CD00A94ABA /* SinkStreamPusher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

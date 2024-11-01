@@ -15,9 +15,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F990A864286F663F00159819"
-               BuildableName = "PopKinectWebcam.app"
-               BlueprintName = "PopKinectWebcam"
+               BlueprintIdentifier = "F990A87A286F666500159819"
+               BuildableName = "com.newchromantics.PopKinectWebcam.cameraextension.systemextension"
+               BlueprintName = "CameraExtension"
                ReferencedContainer = "container:PopKinectWebcam.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -42,16 +42,6 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F990A864286F663F00159819"
-            BuildableName = "PopKinectWebcam.app"
-            BlueprintName = "PopKinectWebcam"
-            ReferencedContainer = "container:PopKinectWebcam.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
       <AdditionalOptions>
          <AdditionalOption
             key = "MallocScribble"
@@ -66,16 +56,15 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
+      <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F990A864286F663F00159819"
-            BuildableName = "PopKinectWebcam.app"
-            BlueprintName = "PopKinectWebcam"
+            BlueprintIdentifier = "F990A87A286F666500159819"
+            BuildableName = "com.newchromantics.PopKinectWebcam.cameraextension.systemextension"
+            BlueprintName = "CameraExtension"
             ReferencedContainer = "container:PopKinectWebcam.xcodeproj">
          </BuildableReference>
-      </BuildableProductRunnable>
+      </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">
