@@ -8,7 +8,7 @@ var TargetCameraName = PopKinectWebcam.cameraName
 @main
 struct PopShaderCameraApp: App
 {
-	var sinkStreamPusher = SinkStreamPusher(cameraName: TargetCameraName)
+	var sinkStreamPusher = SinkStreamPusher(cameraName: TargetCameraName, sinkPropertyName: PopKinectWebcam.sinkPropertyName)
 	
 	init()
 	{

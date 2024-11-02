@@ -3,7 +3,6 @@ import Cocoa
 import CoreMediaIO
 import SystemExtensions
 
-public let SinkPropertyKey = PopKinectWebcam.sinkPropertyName
 
 
 struct CameraStreamMeta
@@ -24,8 +23,12 @@ class CameraWithSinkInterface
 
 	var startedDeviceAndStream : (CMIOObjectID,CMIOStreamID)? = nil
 	
-	init(device: AVCaptureDevice) throws
+	var SinkPropertyKey : String
+
+	
+	init(device: AVCaptureDevice, SinkPropertyKey:String) throws
 	{
+		self.SinkPropertyKey = SinkPropertyKey
 		self.device = device
 		
 		//	find the sink stream id
@@ -252,6 +255,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 	
 	//	variables to help us find what camera & stream we want to write to
 	var targetCameraName : String
+	var sinkPropertyName : String
 	
 	var Freed = false
 	
@@ -268,11 +272,12 @@ class SinkStreamPusher : NSObject, ObservableObject
 	var _bufferAuxAttributes: NSDictionary!
 
 	
-	init(cameraName:String/*,log: @escaping (_ message:String)->()*/)
+	init(cameraName:String,sinkPropertyName:String/*,log: @escaping (_ message:String)->()*/)
 	{
 		print("Allocating new CameraController")
 		//self.logFunctor = log
 		self.targetCameraName = cameraName
+		self.sinkPropertyName = sinkPropertyName
 		
 		super.init()
 				
@@ -376,7 +381,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 			throw RuntimeError("No camera named \(targetCameraName)")
 		}
 
-		return try CameraWithSinkInterface(device:Device)
+		return try CameraWithSinkInterface(device:Device,SinkPropertyKey: sinkPropertyName)
 	}
 	
 	func SendNextFrameToStream(camera:CameraWithSinkInterface) async throws
