@@ -257,7 +257,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 	
 	var Freed = false
 	
-	var DebugFrames = DebugFrameSource(displayText: "App",clearColour: NSColor.cyan.cgColor)
+	var DebugFrames = DebugFrameSource(displayText: "App",clearColour: NSColor.blue.cgColor)
 	
 	var PushFrameRate = 60
 	private var testImage = NSImage(named: "TestImage")
@@ -395,7 +395,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 	
 	func GetSampleBuffer(_ image:CGImage) async throws -> CMSampleBuffer
 	{
-		let frame = try await DebugFrames.PopNewFrame()
+		let frame = try DebugFrames.PopNewFrameSync()
 		return try frame.sampleBuffer
 		
 		

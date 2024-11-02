@@ -75,7 +75,7 @@ class DebugFrameSource : FrameSource
 	let paragraphStyle = NSMutableParagraphStyle()
 	var textFontAttributes: [NSAttributedString.Key : Any]
 	let textColor = NSColor.white
-	let fontSize = 24.0
+	let fontSize = 42.0
 	var textFont : NSFont { NSFont.systemFont(ofSize: fontSize)}
 	let PoolMaxAllocations = 13
 	

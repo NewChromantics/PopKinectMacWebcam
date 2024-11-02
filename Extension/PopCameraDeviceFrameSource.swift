@@ -182,7 +182,7 @@ class PopCameraDeviceFrameSource : FrameSource
 			CVPixelBufferLockBaseAddress(pixelBuffer, [])
 			
 			//	pop frame into our buffer
-			RenderFrame(pixelBuffer, text:text, backgroundColour: NSColor.cyan.cgColor)
+			RenderFrame(pixelBuffer, text:text, backgroundColour: NSColor.blue.cgColor)
 			//RenderFrame(pixelBuffer,timestamp:timestamp)
 			
 			CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
