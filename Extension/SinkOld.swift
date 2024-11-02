@@ -36,11 +36,6 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	
 	private var _videoDescription: CMFormatDescription!
 		
-	
-	//	rendering
-	var clearColor : CGColor = NSColor.black.cgColor
-	
-	var displayMessage = "Waiting for app to send frames :)"
 	var lastError : String? = nil
 	
 	func myStreamingCounter() -> String {
@@ -67,8 +62,8 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		let videoSinkID = UUID()
 		_streamSink = cameraStreamSink(localizedName: "PopShaderCamera.Video.Sink", streamID: videoSinkID, streamFormat: videoStreamFormat, device: device)
 		do {
-			try device.addStream(_streamSink.stream)
 			try device.addStream(_streamSource.stream)
+			try device.addStream(_streamSink.stream)
 		} catch let error {
 			fatalError("Failed to add stream: \(error.localizedDescription)")
 		}
@@ -100,6 +95,44 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	}
 	
 	
+	func UpdateFrame()
+	{
+		//	if we're not using consume buffer, show our debug
+		if self.sinkStarted
+		{
+			for client in self._streamSink.stream.streamingClients
+			{
+				do
+				{
+					try self.consumeOneBuffer(client)
+					return
+				}
+				catch let err
+				{
+					self.lastError = err.localizedDescription
+				}
+			}
+		}
+		
+		do
+		{
+			self.debugFrameSource.displayText = self.lastError ?? "Waiting for something"
+			let Frame = try self.debugFrameSource.PopNewFrameSync()
+			
+			try self._streamSource.stream.send( Frame.sampleBuffer, discontinuity: [], hostTimeInNanoseconds: Frame.timeNanos )
+			
+			//	remove error
+			self.lastError = nil
+		}
+		catch let error
+		{
+			//	display an error
+			self.lastError = "\(error.localizedDescription)"
+		}
+		
+	}
+	
+	
 	func startStreaming()
 	{
 		_streamingCounter += 1
@@ -108,45 +141,8 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		
 		_timer!.setEventHandler
 		{
-			//	gr: sink started is.... backwards?
-			if self.sinkStarted
-			{
-				return
-			}
-			
-			do
-			{
-				let Frame = try self.debugFrameSource.PopNewFrameSync()
-				/*
-				let Frame = try self.PopNewFrame()
-				if ( Frame == nil )
-				{
-					return
-				}
-				let pixelBuffer : CVPixelBuffer = Frame!.0
-				let frameTime : CMTime = Frame!.1
-				
-				var sbuf: CMSampleBuffer!
-				var timingInfo = CMSampleTimingInfo()
-				timingInfo.presentationTimeStamp = frameTime
-				let err = CMSampleBufferCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer, dataReady: true, makeDataReadyCallback: nil, refcon: nil, formatDescription: self._videoDescription, sampleTiming: &timingInfo, sampleBufferOut: &sbuf)
-				if err != 0
-				{
-					throw RuntimeError("Error creating sample buffer \(err)")
-				}
-				self._streamSource.stream.send(sbuf, discontinuity: [], hostTimeInNanoseconds: UInt64(timingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-				*/
-				try self._streamSource.stream.send( Frame.sampleBuffer, discontinuity: [], hostTimeInNanoseconds: Frame.timeNanos )
-				
-				//	remove error
-				self.lastError = nil
-			}
-			catch let error
-			{
-				//	display an error
-				self.lastError = "\(error.localizedDescription)"
-			}
-			
+			self.UpdateFrame()
+
 		}
 		
 		_timer!.setCancelHandler {
@@ -171,22 +167,58 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	var sinkStarted = false
 	var lastTimingInfo = CMSampleTimingInfo()
 	
-	
+	func consumeOneBuffer(_ client: CMIOExtensionClient) throws
+	{
+		var SomeError : String? = nil
+		self._streamSink.stream.consumeSampleBuffer(from: client)
+		{
+			sbuf, seq, discontinuity, hasMoreSampleBuffers, err in
+			if let sbuf
+			{
+				self.lastTimingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
+				let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds: UInt64(self.lastTimingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+				if self._streamingCounter > 0
+				{
+					self._streamSource.stream.send(sbuf, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+				}
+				self._streamSink.stream.notifyScheduledOutputChanged(output)
+			}
+			else
+			{
+				let error = err?.localizedDescription ?? "ConsumeBuffer missing sample"
+				//throw RuntimeError("ConsumeBuffer Error \(error)")
+				SomeError = error
+			}
+		}
+		if let SomeError
+		{
+			throw RuntimeError(SomeError)
+		}
+	}
 	
 	func consumeBuffer(_ client: CMIOExtensionClient)
 	{
 		if sinkStarted == false {
 			return
 		}
-		self._streamSink.stream.consumeSampleBuffer(from: client) { sbuf, seq, discontinuity, hasMoreSampleBuffers, err in
-			if sbuf != nil {
+		self._streamSink.stream.consumeSampleBuffer(from: client)
+		{
+			sbuf, seq, discontinuity, hasMoreSampleBuffers, err in
+			if let sbuf
+			{
 				self.lastTimingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
 				let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds: UInt64(self.lastTimingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-				if self._streamingCounter > 0 {
-					self._streamSource.stream.send(sbuf!, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf!.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+				if self._streamingCounter > 0
+				{
+					self._streamSource.stream.send(sbuf, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
 				}
 				self._streamSink.stream.notifyScheduledOutputChanged(output)
 			}
+			else
+			{
+				self.lastError = err?.localizedDescription ?? "ConsumeBuffer missing sample"
+			}
+
 			self.consumeBuffer(client)
 		}
 	}
@@ -195,7 +227,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		
 		_streamingSinkCounter += 1
 		self.sinkStarted = true
-		consumeBuffer(client)
+		//consumeBuffer(client)
 	}
 	
 	func stopStreamingSink() {
