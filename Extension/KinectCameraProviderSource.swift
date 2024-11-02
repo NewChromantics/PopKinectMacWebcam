@@ -5,7 +5,7 @@ import os.log
 import Cocoa
 import PopCameraDevice
 
-
+var TargetCameraName = "Sink Consumer Device"
 
 extension String
 {
@@ -24,13 +24,14 @@ class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 	private(set) var provider: CMIOExtensionProvider!
 	
 	var devices : [String:CMIOExtensionDeviceSource] = [:]
-	var sinkDevice : SinkDeviceSource
-	
-	
+	//var sinkDevice : SinkDeviceSource
+	var sinkDevice : cameraDeviceSource
+
 	init(clientQueue: DispatchQueue?)
 	{
 		//	make the sink device
-		sinkDevice = SinkDeviceSource()
+		//sinkDevice = SinkDeviceSource()
+		sinkDevice = cameraDeviceSource(localizedName: TargetCameraName)
 
 		super.init()
 

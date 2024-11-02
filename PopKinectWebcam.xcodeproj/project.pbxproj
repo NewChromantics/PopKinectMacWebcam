@@ -11,6 +11,7 @@
 		BF2317F02CD5014500A94ABA /* SinkDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2317EF2CD5014500A94ABA /* SinkDevice.swift */; };
 		BF2317F42CD505CD00A94ABA /* SinkStreamPusher.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2317F32CD505CD00A94ABA /* SinkStreamPusher.swift */; };
 		BF2317F52CD5579F00A94ABA /* FrameSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */; };
+		BF2318262CD661D800A94ABA /* SinkOld.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2318252CD661D800A94ABA /* SinkOld.swift */; };
 		BF76118E2CBC0AAB00EB4BE1 /* FrameSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */; };
 		BF7611922CBD69AD00EB4BE1 /* KinectDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7611912CBD69AD00EB4BE1 /* KinectDevice.swift */; };
 		BF7CEF7E2CB6CB9D00A20F77 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
@@ -67,6 +68,7 @@
 		BF2317ED2CD3BC9F00A94ABA /* SinkStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SinkStream.swift; sourceTree = "<group>"; };
 		BF2317EF2CD5014500A94ABA /* SinkDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SinkDevice.swift; sourceTree = "<group>"; };
 		BF2317F32CD505CD00A94ABA /* SinkStreamPusher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SinkStreamPusher.swift; sourceTree = "<group>"; };
+		BF2318252CD661D800A94ABA /* SinkOld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SinkOld.swift; sourceTree = "<group>"; };
 		BF3311E42CB6A39400D3936A /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 		BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSource.swift; sourceTree = "<group>"; };
 		BF76118F2CBD235000EB4BE1 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
@@ -183,6 +185,7 @@
 				F990A87F286F666500159819 /* main.swift */,
 				BFDA39B22CC67666003C8172 /* PopCameraDeviceFrameSource.swift */,
 				BF2317EF2CD5014500A94ABA /* SinkDevice.swift */,
+				BF2318252CD661D800A94ABA /* SinkOld.swift */,
 				BF2317ED2CD3BC9F00A94ABA /* SinkStream.swift */,
 			);
 			path = Extension;
@@ -309,6 +312,7 @@
 				BF7611922CBD69AD00EB4BE1 /* KinectDevice.swift in Sources */,
 				F990A880286F666500159819 /* main.swift in Sources */,
 				F990A87E286F666500159819 /* KinectCameraProviderSource.swift in Sources */,
+				BF2318262CD661D800A94ABA /* SinkOld.swift in Sources */,
 				BF2317F02CD5014500A94ABA /* SinkDevice.swift in Sources */,
 				BF2317EE2CD3BC9F00A94ABA /* SinkStream.swift in Sources */,
 				BF76118E2CBC0AAB00EB4BE1 /* FrameSource.swift in Sources */,

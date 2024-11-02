@@ -104,7 +104,8 @@ class CameraWithSinkInterface
 
 		//	todo: more sophisticated sink stream detection
 		//		ie. read a property we're looking for to identify it
-		return StreamIds[0]
+		//return StreamIds[0]	graham's
+		return StreamIds[1]	//	old
 	}
 	
 	func BindToSinkQueue(sinkStreamId:CMIOStreamID) throws
@@ -224,6 +225,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 	
 	var Freed = false
 	
+	var DebugFrames = DebugFrameSource(displayText: "App",clearColour: NSColor.cyan.cgColor)
 	
 	private var needToStream: Bool = false
 	private var testImage = NSImage(named: "TestImage")
@@ -299,7 +301,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 				threadStateString = "Got Camera, sending frame..."
 				while ( !Freed )
 				{
-					try SendNextFrameToStream(camera:Camera)
+					try await SendNextFrameToStream(camera:Camera)
 					try! await Task.sleep( for:.seconds(1/30.0) )
 				}
 			}
@@ -362,7 +364,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 		return try CameraWithSinkInterface(device:Device)
 	}
 	
-	func SendNextFrameToStream(camera:CameraWithSinkInterface)  throws
+	func SendNextFrameToStream(camera:CameraWithSinkInterface) async throws
 	{
 		guard let image = testImage else
 		{
@@ -373,7 +375,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 			throw RuntimeError("failed to get image to send to sink")
 		}
 		
-		let Sample = try GetSampleBuffer(cgImage)
+		let Sample = try await GetSampleBuffer(cgImage)
 		
 		try camera.Send(Sample)
 	}
@@ -591,8 +593,12 @@ class SinkStreamPusher : NSObject, ObservableObject
 	}
 	
 	*/
-	func GetSampleBuffer(_ image:CGImage) throws -> CMSampleBuffer
+	func GetSampleBuffer(_ image:CGImage) async throws -> CMSampleBuffer
 	{
+		let frame = try await DebugFrames.PopNewFrame()
+		return try frame.sampleBuffer
+		
+		
 		var pixelBuffer: CVPixelBuffer?
 		let CreatePixelBufferResult = CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(kCFAllocatorDefault, self._bufferPool, self._bufferAuxAttributes, &pixelBuffer)
 		if ( CreatePixelBufferResult != 0 )
