@@ -3,6 +3,9 @@ import Cocoa
 import CoreMediaIO
 import SystemExtensions
 
+public let SinkPropertyKey = "sink"
+let SinkProperty : CMIOExtensionProperty = CMIOExtensionProperty(rawValue: "4cc_\(SinkPropertyKey)_glob_0000")
+
 
 struct CameraStreamMeta
 {
@@ -96,16 +99,45 @@ class CameraWithSinkInterface
 		return streamIds
 	}
 	
+	func getProperty(streamId: CMIOStreamID,key:String) -> String?
+	{
+		let Fourcc = FourCharCode(key)
+		let selector = CMIOObjectPropertySelector(Fourcc)
+		var address = CMIOObjectPropertyAddress( selector, .global, .main)
+		let exists = CMIOObjectHasProperty(streamId, &address)
+		if ( !exists )
+		{
+			return nil
+		}
+		
+		var dataSize: UInt32 = 0
+		var dataUsed: UInt32 = 0
+		CMIOObjectGetPropertyDataSize(streamId, &address, 0, nil, &dataSize)
+		var name: CFString = "" as NSString
+		CMIOObjectGetPropertyData(streamId, &address, 0, nil, dataSize, &dataUsed, &name);
+		return name as String
+	}
+	
 	func GetSinkStreamId() throws -> CMIOStreamID
 	{
 		let DeviceUid = try GetCmioDeviceId(uid: device.uniqueID)
 		
 		let StreamIds = GetInputStreamIds(deviceId: DeviceUid)
 
-		//	todo: more sophisticated sink stream detection
-		//		ie. read a property we're looking for to identify it
-		//return StreamIds[0]	graham's
-		return StreamIds[1]	//	old
+		//	find stream with our sink property
+		for StreamId in StreamIds
+		{
+			guard let SinkValue = getProperty(streamId: StreamId, key: SinkPropertyKey/* SinkProperty.rawValue*/ ) else
+			{
+				continue
+			}
+			
+			//	assume value is good if key present
+			print("Sink property found: \(SinkValue)")
+			return StreamId
+		}
+		
+		throw RuntimeError("No streamid with \(SinkPropertyKey) key")
 	}
 	
 	func BindToSinkQueue(sinkStreamId:CMIOStreamID) throws
@@ -723,7 +755,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 
 
 
-/*
+
 extension FourCharCode: ExpressibleByStringLiteral {
 	
 	public init(stringLiteral value: StringLiteralType) {
@@ -765,7 +797,8 @@ extension FourCharCode: ExpressibleByStringLiteral {
 		return String(cString: cString)
 	}
 }
-*/
+
+
 public extension CMIOObjectPropertyAddress {
 	init(_ selector: CMIOObjectPropertySelector,
 		 _ scope: CMIOObjectPropertyScope = .anyScope,
@@ -799,5 +832,6 @@ public extension CMIOObjectPropertyElement {
 	/// The wildcard value for CMIOObjectPropertyElements.
 	static let anyElement = CMIOObjectPropertyElement(kCMIOObjectPropertyElementWildcard)
 }
+
 
 

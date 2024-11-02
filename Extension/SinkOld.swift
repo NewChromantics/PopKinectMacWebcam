@@ -4,6 +4,12 @@ import IOKit.audio
 import os.log
 import Cocoa
 
+
+public let SinkPropertyKey = "sink"
+let SinkProperty : CMIOExtensionProperty = CMIOExtensionProperty(rawValue: "4cc_\(SinkPropertyKey)_glob_0000")
+
+
+
 let kFrameRate: Int = 60
 let cameraName = "PopShaderCamera Camera Name"
 let fixedCamWidth: Int32 = 1280
@@ -48,20 +54,11 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		let deviceID = UUID()
 		self.device = CMIOExtensionDevice(localizedName: localizedName, deviceID: deviceID, legacyDeviceID: deviceID.uuidString, source: self)
 		
-		//let dims = CMVideoDimensions(width: 1920, height: 1080)
 		let dims = CMVideoDimensions(width: fixedCamWidth, height: fixedCamHeight)
 		CMVideoFormatDescriptionCreate(
 			allocator: kCFAllocatorDefault,
 			codecType: kCVPixelFormatType_32BGRA,
-			//codecType: kCVPixelFormatType_32ARGB/*kCVPixelFormatType_32BGRA*/,
 			width: dims.width, height: dims.height, extensions: nil, formatDescriptionOut: &_videoDescription)
-		
-		let pixelBufferAttributes: NSDictionary = [
-			kCVPixelBufferWidthKey: dims.width,
-			kCVPixelBufferHeightKey: dims.height,
-			kCVPixelBufferPixelFormatTypeKey: _videoDescription.mediaSubType,
-			kCVPixelBufferIOSurfacePropertiesKey: [:]
-		]
 		
 		let videoStreamFormat = CMIOExtensionStreamFormat.init(formatDescription: _videoDescription, maxFrameDuration: CMTime(value: 1, timescale: Int32(kFrameRate)), minFrameDuration: CMTime(value: 1, timescale: Int32(kFrameRate)), validFrameDurations: nil)
 		
@@ -70,8 +67,8 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		let videoSinkID = UUID()
 		_streamSink = cameraStreamSink(localizedName: "PopShaderCamera.Video.Sink", streamID: videoSinkID, streamFormat: videoStreamFormat, device: device)
 		do {
-			try device.addStream(_streamSource.stream)
 			try device.addStream(_streamSink.stream)
+			try device.addStream(_streamSource.stream)
 		} catch let error {
 			fatalError("Failed to add stream: \(error.localizedDescription)")
 		}
@@ -346,6 +343,7 @@ class cameraStreamSink: NSObject, CMIOExtensionStreamSource {
 	var availableProperties: Set<CMIOExtensionProperty>
 	{
 		return [
+			SinkProperty,
 			.streamActiveFormatIndex,
 			.streamFrameDuration,
 			.streamSinkBufferQueueSize,
@@ -370,6 +368,9 @@ class cameraStreamSink: NSObject, CMIOExtensionStreamSource {
 		if properties.contains(.streamSinkBuffersRequiredForStartup) {
 			streamProperties.sinkBuffersRequiredForStartup = 1
 		}
+		
+		streamProperties.setPropertyState( CMIOExtensionPropertyState(value: "Hello" as NSString), forProperty: SinkProperty )
+		
 		return streamProperties
 	}
 	
