@@ -8,7 +8,8 @@
 import Foundation
 import CoreMediaIO
 
-let providerSource = KinectCameraProviderSource(clientQueue: nil)
+
+let providerSource = KinectCameraProviderSource(clientQueue: nil, sinkCameraName:PopKinectWebcam.cameraName)
 CMIOExtensionProvider.startService(provider: providerSource.provider)
 
 CFRunLoopRun()

@@ -2,7 +2,7 @@ import SwiftUI
 import Foundation
 import AppKit	//	uikit on ios
 
-var TargetCameraName = "Sink Consumer Device"
+var TargetCameraName = PopKinectWebcam.cameraName
 
 
 @main

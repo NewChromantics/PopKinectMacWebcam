@@ -3,8 +3,7 @@ import Cocoa
 import CoreMediaIO
 import SystemExtensions
 
-public let SinkPropertyKey = "sink"
-let SinkProperty : CMIOExtensionProperty = CMIOExtensionProperty(rawValue: "4cc_\(SinkPropertyKey)_glob_0000")
+public let SinkPropertyKey = PopKinectWebcam.sinkPropertyName
 
 
 struct CameraStreamMeta
@@ -127,7 +126,7 @@ class CameraWithSinkInterface
 		//	find stream with our sink property
 		for StreamId in StreamIds
 		{
-			guard let SinkValue = getProperty(streamId: StreamId, key: SinkPropertyKey/* SinkProperty.rawValue*/ ) else
+			guard let SinkValue = getProperty(streamId: StreamId, key: SinkPropertyKey ) else
 			{
 				continue
 			}
