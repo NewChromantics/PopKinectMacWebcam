@@ -252,17 +252,20 @@ class SinkStreamPusher : NSObject, ObservableObject
 	
 	//	variables to help us find what camera & stream we want to write to
 	var targetCameraName : String
-	//	sink stream key
 	
 	var Freed = false
 	
 	var DebugFrames = DebugFrameSource(displayText: "App",clearColour: NSColor.blue.cgColor)
 	
-	var PushFrameRate = 60
-	private var testImage = NSImage(named: "TestImage")
-	private var _videoDescription: CMFormatDescription!
-	private var _bufferPool: CVPixelBufferPool!
-	private var _bufferAuxAttributes: NSDictionary!
+	let PushFrameRate = 60
+	
+	
+	let showTestImageEveryXFrames = 60
+	var pushedFrameCount = 0
+	var testImage = NSImage(named: "TestImage")
+	var _videoDescription: CMFormatDescription!
+	var _bufferPool: CVPixelBufferPool!
+	var _bufferAuxAttributes: NSDictionary!
 
 	
 	init(cameraName:String/*,log: @escaping (_ message:String)->()*/)
@@ -392,12 +395,8 @@ class SinkStreamPusher : NSObject, ObservableObject
 		try camera.Send(Sample)
 	}
 	
-	func GetSampleBuffer(_ image:CGImage) async throws -> CMSampleBuffer
+	func GetTestImageSampleBuffer(_ image:CGImage) async throws -> CMSampleBuffer
 	{
-		let frame = try DebugFrames.PopNewFrameSync()
-		return try frame.sampleBuffer
-		
-		
 		var pixelBuffer: CVPixelBuffer?
 		let CreatePixelBufferResult = CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(kCFAllocatorDefault, self._bufferPool, self._bufferAuxAttributes, &pixelBuffer)
 		if ( CreatePixelBufferResult != 0 )
@@ -430,7 +429,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 			context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
 		}
 		CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-			
+		
 		var sbuf: CMSampleBuffer!
 		var timingInfo = CMSampleTimingInfo()
 		timingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
@@ -441,6 +440,20 @@ class SinkStreamPusher : NSObject, ObservableObject
 		}
 		
 		return sbuf
+	}
+		
+	func GetSampleBuffer(_ image:CGImage) async throws -> CMSampleBuffer
+	{
+		pushedFrameCount += 1
+		if ( pushedFrameCount % showTestImageEveryXFrames == 0 )
+		{
+			return try await GetTestImageSampleBuffer(image)
+		}
+		else
+		{
+			let frame = try DebugFrames.PopNewFrameSync()
+			return try frame.sampleBuffer
+		}
 	}
 	
 	

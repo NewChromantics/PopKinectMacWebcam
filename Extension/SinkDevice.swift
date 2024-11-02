@@ -24,6 +24,7 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 	init(sinkCameraName: String)
 	{
 		let SinkPropertyKey = PopKinectWebcam.sinkPropertyName
+		debugFrameSource.displayText = sinkCameraName
 		
 		super.init()
 		let deviceID = UUID()
@@ -189,7 +190,9 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 	
 	func consumeOneBuffer(_ client: CMIOExtensionClient) throws
 	{
+		//	todo: change this to a future
 		var SomeError : String? = nil
+		
 		self.sink.stream.consumeSampleBuffer(from: client)
 		{
 			sbuf, seq, discontinuity, hasMoreSampleBuffers, err in
@@ -212,6 +215,7 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 				SomeError = error
 			}
 		}
+		
 		if let SomeError
 		{
 			throw RuntimeError(SomeError)
