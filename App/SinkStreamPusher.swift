@@ -40,13 +40,6 @@ class CameraWithSinkInterface
 	
 	func Free()
 	{
-		//	need to remove our pointer to CMIOStreamCopyBufferQueue
-		if ( sinkQueuePoiner != nil )
-		{
-			sinkQueuePoiner.deallocate()
-			sinkQueuePoiner = nil
-		}
-		
 		if let startedDeviceAndStream
 		{
 			let deviceId = startedDeviceAndStream.0
@@ -58,6 +51,14 @@ class CameraWithSinkInterface
 			}
 		}
 		startedDeviceAndStream = nil
+
+		//	need to remove our pointer to CMIOStreamCopyBufferQueue
+		if ( sinkQueuePoiner != nil )
+		{
+			sinkQueuePoiner.deallocate()
+			sinkQueuePoiner = nil
+		}
+		
 	}
 	
 	func GetCmioDeviceId(uid:String) throws -> CMIOObjectID
@@ -233,6 +234,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 	private var _videoDescription: CMFormatDescription!
 	private var _bufferPool: CVPixelBufferPool!
 	private var _bufferAuxAttributes: NSDictionary!
+	let PoolMaxAllocations = 13
 	private var _whiteStripeStartRow: UInt32 = 0
 	private var _whiteStripeIsAscending: Bool = false
 	private var overlayMessage: Bool = false
@@ -332,6 +334,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 			kCVPixelBufferIOSurfacePropertiesKey: [:]
 		]
 		
+		_bufferAuxAttributes = [kCVPixelBufferPoolAllocationThresholdKey: PoolMaxAllocations]
 		CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, pixelBufferAttributes, &_bufferPool)
 	}
 	

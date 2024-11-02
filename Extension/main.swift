@@ -9,6 +9,6 @@ import Foundation
 import CoreMediaIO
 
 let providerSource = KinectCameraProviderSource(clientQueue: nil)
-CMIOExtensionProvider.startService(provider: providerSource.provider)
+CMIOExtensionProvider.startService(provider: providerSource.provider!)
 
 CFRunLoopRun()

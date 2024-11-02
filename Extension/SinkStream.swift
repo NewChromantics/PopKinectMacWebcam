@@ -2,6 +2,7 @@ import Foundation
 import CoreMediaIO
 import Cocoa
 import PopCameraDevice
+import os.log
 
 
 
@@ -9,34 +10,22 @@ import PopCameraDevice
 class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 {
 	//	we own a stream which is a sink (doesn't get exposed to users)
-	var sinkStream : CMIOExtensionStream!
+	var sinkStream : CMIOExtensionStream?
 	var SinkName = "Sink Name"
 	var SinkUid : UUID = UUID()
-	var Clients : [CMIOExtensionClient] = []
+	var Clients : [CMIOExtensionClient]	{	return sinkStream?.streamingClients ?? []	}
 
-	var bufferPool: CVPixelBufferPool!
-	var bufferAuxAttributes: NSDictionary!
-	let width : Int32 = 640
-	let height : Int32 = 480
-	let frameRate = 60
-	let pixelFormat = kCVPixelFormatType_32BGRA
-	var videoFormat : CMFormatDescription!
-	var maxFrameDuration : CMTime
-	{
-		CMTime(value: 1, timescale: Int32(60))
-	}
-	
-	
+	let frameRate : Int32 = 60
 	var initError : String?
 	var running = true
 	var sinkPusherStarted = false
-	
 	var format : StreamImageFormat
+	
 	
 	init(device: CMIOExtensionDevice)
 	{
 		format = StreamImageFormat(width:600,height:500,pixelFormat: kCMPixelFormat_32BGRA)
-
+		
 		super.init()
 		
 
@@ -45,6 +34,10 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 		
 		do
 		{
+			guard let sinkStream else
+			{
+				throw RuntimeError("Failed to allocate sink stream")
+			}
 			//	expose it to the device
 			try device.addStream(sinkStream)
 
@@ -55,6 +48,7 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 		catch let error
 		{
 			initError = error.localizedDescription
+			os_log("Bootup error: \(error.localizedDescription)")
 		}
 	}
 	
@@ -66,21 +60,29 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 	
 	func ConsumeFrame(client:CMIOExtensionClient) async throws -> CMSampleBuffer
 	{
+		os_log("ConsumeFrame()")
+		Logger.System.log("Consume from \(client.signingID!)")
 		//	make nicer error
 		do
 		{
+			guard let sinkStream else
+			{
+				throw RuntimeError("Missing sinkStream")
+			}
+			
 			//throw RuntimeError( self.sinkPusherStarted  ? "ConsumeFrame" : "No sink-pusher-connected")
 
 			let (Sample, SequenceNumber, Disconinuity, HasMoreSamples) = try await sinkStream.consumeSampleBuffer(from: client)
-			
+			os_log("Consumed buffer seq=\(SequenceNumber) more=\(HasMoreSamples)")
 			//	notify it's been consumed
 			let now = CMClockGetTime(CMClockGetHostTimeClock())
 			let output = CMIOExtensionScheduledOutput(sequenceNumber: SequenceNumber, hostTimeInNanoseconds: UInt64(now.seconds * Double(NSEC_PER_SEC)))
 			
 			//	somewhere, having this causes the nil! exception?
 			//	maybe this should ONLY be used in the callback version?
-			//self.sinkStream.notifyScheduledOutputChanged(output)
+			//self.sinkStream!.notifyScheduledOutputChanged(output)
 			
+			os_log("sending dummy frame")
 			throw RuntimeError( self.sinkPusherStarted  ? "ConsumedFrame(output)" : "No sink-pusher-connected")
 
 			//first use of this immediately had nil! error
@@ -88,6 +90,7 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 		}
 		catch let Error
 		{
+			os_log("ConsumeSampleBuffer: \(Error.localizedDescription)")
 			throw RuntimeError("ConsumeSampleBuffer: \(Error.localizedDescription)")
 		}
 	}
@@ -183,16 +186,36 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 	
 	var availableProperties: Set<CMIOExtensionProperty>
 	{
-		return []//[.streamFrameDuration]
-	}
-
-	func streamProperties(forProperties properties: Set<CMIOExtensionProperty>) throws -> CMIOExtensionStreamProperties
-	{
-		//	os expects data for all properties
-		let streamProperties = CMIOExtensionStreamProperties(dictionary: [:])
-		return streamProperties
+		return [
+			.streamActiveFormatIndex,
+			.streamFrameDuration,
+			.streamSinkBufferQueueSize,
+			.streamSinkBuffersRequiredForStartup,
+			.streamSinkBufferUnderrunCount,
+			.streamSinkEndOfData
+		]
 	}
 	
+	func streamProperties(forProperties properties: Set<CMIOExtensionProperty>) throws -> CMIOExtensionStreamProperties {
+
+		let streamProperties = CMIOExtensionStreamProperties(dictionary: [:])
+
+		if properties.contains(.streamActiveFormatIndex) {
+			streamProperties.activeFormatIndex = 0
+		}
+		if properties.contains(.streamFrameDuration) {
+			let frameDuration = CMTime(value: 1, timescale: frameRate)
+			streamProperties.frameDuration = frameDuration
+		}
+		if properties.contains(.streamSinkBufferQueueSize) {
+			streamProperties.sinkBufferQueueSize = 1
+		}
+		if properties.contains(.streamSinkBuffersRequiredForStartup) {
+			streamProperties.sinkBuffersRequiredForStartup = 1
+		}
+		return streamProperties
+	}
+		
 	func setStreamProperties(_ streamProperties: CMIOExtensionStreamProperties) throws
 	{
 	}
@@ -201,22 +224,21 @@ class SinkFrameSource : NSObject, CMIOExtensionStreamSource, FrameSource
 	func authorizedToStartStream(for client: CMIOExtensionClient) -> Bool
 	{
 		//	gr: presumably this client app
-		print("Client starting (to push?) to sink \(client.signingID)")
-		Clients.append(client)
+		Logger.System.log("Client starting (to push?) to sink \(client.signingID!)")
 		return true
 	}
 	
 	func startStream() throws
 	{
 		//	start consuming loop if we havent
-		print("Sink stream start")
+		os_log("Sink stream start")
 		sinkPusherStarted = true
 	}
 	
 	func stopStream() throws
 	{
 		//	if a client is pushing frames, why stop?
-		print("Sink stream stop")
+		os_log("Sink stream stop")
 		sinkPusherStarted = false
 	}
 }
@@ -234,7 +256,7 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 	var debugFrameSource : FrameSource	//	display text
 	var displayText : String? = nil
 
-	var stream : CMIOExtensionStream!
+	var stream : CMIOExtensionStream?
 	let device: CMIOExtensionDevice	//	parent
 	var supportedKinectFormats : [StreamImageFormat]
 
@@ -258,9 +280,10 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 		
 		self.stream = CMIOExtensionStream(localizedName: localizedStreamName, streamID: streamID, direction: .source, clockType: .hostTime, source: self)
 		
-		Task
+		Task.detached
 		{
-			await FrameLoop()
+			@MainActor in
+			await self.FrameLoop()
 		}
 	}
 	
@@ -343,7 +366,12 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 		{
 			let frame = try await frameSource.PopNewFrame()
 			
-			try self.stream.send( frame.sampleBuffer, discontinuity: [], hostTimeInNanoseconds: frame.timeNanos )
+			guard let stream else
+			{
+				throw RuntimeError("Stream is null")
+			}
+			
+			try stream.send( frame.sampleBuffer, discontinuity: [], hostTimeInNanoseconds: frame.timeNanos )
 			
 			//	remove error
 			self.ClearError()
@@ -355,6 +383,28 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 		}
 	}
 	
+	func ConsumeFrameDirectly(client:CMIOExtensionClient) async throws
+	{
+		guard let sinkStream = sinkFrameSource.sinkStream else
+		{
+			throw RuntimeError("Missing sink strem")
+		}
+		
+		Logger.System.log("Consume from \(client.signingID!)")
+		let (Sample, SequenceNumber, Disconinuity, HasMoreSamples) = try await sinkStream.consumeSampleBuffer(from: client)
+		
+		let now = CMClockGetTime(CMClockGetHostTimeClock())
+		let nowNanos = UInt64(now.seconds * Double(NSEC_PER_SEC))
+		
+		os_log("Consumed buffer seq=\(SequenceNumber) more=\(HasMoreSamples) send()...")
+		try stream!.send( Sample, discontinuity: [], hostTimeInNanoseconds: nowNanos )
+		
+		os_log("notify buffer seq=\(SequenceNumber)")
+		
+		//	notify it's been consumed
+		let output = CMIOExtensionScheduledOutput(sequenceNumber: SequenceNumber, hostTimeInNanoseconds: nowNanos)
+		sinkStream.notifyScheduledOutputChanged(output)
+	}
 	
 	func FrameLoop() async
 	{
@@ -380,11 +430,34 @@ class SinkConsumerStreamSource: NSObject, CMIOExtensionStreamSource
 				}
 				
 				let DelayMs = 1000 / Double(30)
-				try! await Task.sleep(for:.milliseconds(DelayMs))
+				do
+				{
+					try await Task.sleep(for:.milliseconds(DelayMs))
+				}
+				catch let Error
+				{
+					Logger.System.log("\(Error.localizedDescription)")
+				}
 			}
 			
-			await DisplayFrameFrom(frameSource:sinkFrameSource)
+			if ( sinkFrameSource.Clients.isEmpty )
+			{
+				OnError("Waiting for client...")
+			}
 			
+			//await DisplayFrameFrom(frameSource:sinkFrameSource)
+			for client in sinkFrameSource.Clients
+			{
+				do
+				{
+					try await ConsumeFrameDirectly(client: client)
+					ClearError()
+				}
+				catch let Error
+				{
+					os_log("Consume directly error: \(Error.localizedDescription)")
+				}
+			}
 		}
 		
 	}

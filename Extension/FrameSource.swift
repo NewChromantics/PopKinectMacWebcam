@@ -27,7 +27,11 @@ struct Frame
 			{
 				throw RuntimeError("Samplebuffer and pixelbuffer are both null")
 			}
-			
+			if ( format == nil )
+			{
+				throw RuntimeError("missing pixel format")
+			}
+
 			var sbuf: CMSampleBuffer!
 			var timingInfo = CMSampleTimingInfo()
 			timingInfo.presentationTimeStamp = time
@@ -35,6 +39,10 @@ struct Frame
 			if err != 0
 			{
 				throw RuntimeError("Error creating sample buffer \(err)")
+			}
+			if ( sbuf == nil )
+			{
+				throw RuntimeError("Error creating sample buffer but no error")
 			}
 			return sbuf
 		}

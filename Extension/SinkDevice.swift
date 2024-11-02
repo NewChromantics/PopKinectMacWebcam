@@ -25,7 +25,7 @@ class SinkDeviceSource: NSObject, CMIOExtensionDeviceSource
 		let StreamUid = UUID()
 		var StreamFormats = [StreamImageFormat(width: 123, height: 123, pixelFormat: kCVPixelFormatType_32BGRA)]
 		stream = SinkConsumerStreamSource( localizedStreamName: StreamName, streamID: StreamUid, device: self.device, formats: StreamFormats)
-		try! device.addStream(stream.stream)
+		try! device.addStream(stream.stream!)
 	}
 	
 	var availableProperties: Set<CMIOExtensionProperty> {

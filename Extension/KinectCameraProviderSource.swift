@@ -6,6 +6,10 @@ import Cocoa
 import PopCameraDevice
 
 
+extension Logger
+{
+	static let System = Logger(subsystem: "com.camera.sink", category: "sink")
+}
 
 extension String
 {
@@ -21,7 +25,7 @@ extension String
 
 class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 {
-	private(set) var provider: CMIOExtensionProvider!
+	var provider: CMIOExtensionProvider?
 	
 	var devices : [String:CMIOExtensionDeviceSource] = [:]
 	var sinkDevice : SinkDeviceSource
@@ -36,13 +40,25 @@ class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 
 		provider = CMIOExtensionProvider(source: self, clientQueue: clientQueue)
 
-		try! provider.addDevice(sinkDevice.device)
-		
+		do
+		{
+			guard let provider else
+			{
+				throw RuntimeError("Provider not allocated")
+			}
+			try provider.addDevice(sinkDevice.device)
+		}
+		catch let error
+		{
+			os_log("failed to add sink device \(error.localizedDescription)")
+		}
+			
+		/*
 		Task
 		{
 			await WatchForNewDevicesThread()
 		}
-		
+		*/
 	}
 	
 	func WatchForNewDevicesThread() async
@@ -55,7 +71,7 @@ class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 			}
 			catch let Error
 			{
-				print("WatchForNewDevicesThread sleep error \(Error.localizedDescription)")
+				os_log("WatchForNewDevicesThread sleep error \(Error.localizedDescription)")
 				return
 			}
 			
@@ -66,7 +82,7 @@ class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 			}
 			catch let error
 			{
-				print("Error enumerating devices; \(error.localizedDescription)")
+				os_log("Error enumerating devices; \(error.localizedDescription)")
 			}
 		}
 	}
@@ -86,7 +102,7 @@ class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 		
 		//	make a new device
 		let device = KinectDeviceSource(deviceMeta)
-		try provider.addDevice(device.device)
+		try provider!.addDevice(device.device)
 		self.devices[deviceMeta.Serial] = device
 	}
 	
@@ -107,12 +123,12 @@ class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 	
 	func connect(to client: CMIOExtensionClient) throws
 	{
-		print("client \(client.signingID) connected")
+		Logger.System.log("client \(client.signingID!) connected")
 	}
 	
 	func disconnect(from client: CMIOExtensionClient)
 	{
-		print("client \(client.signingID) disconnected")
+		Logger.System.log("client \(client.signingID!) disconnected")
 	}
 	
 	var availableProperties: Set<CMIOExtensionProperty> {
