@@ -28,7 +28,7 @@ class LogBuffer : ObservableObject
 struct AppView : View
 {
 	var extensionManager : ExtensionManager {	return extensionManagerInstance!	}
-	@EnvironmentObject var sinkStreamPusher : SinkStreamPusher
+	@EnvironmentObject var sinkStreamPusher : SinkStreamPusher	//	cannot use base type here
 	@ObservedObject var cameraDebug = LogBuffer()
 
 	init()

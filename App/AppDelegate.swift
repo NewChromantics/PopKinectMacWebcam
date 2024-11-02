@@ -4,11 +4,12 @@ import AppKit	//	uikit on ios
 
 var TargetCameraName = PopKinectWebcam.cameraName
 
+var appFrameSource = DebugFrameSource(displayText: "Hello", clearColour: NSColor.green.cgColor)
 
 @main
 struct PopShaderCameraApp: App
 {
-	var sinkStreamPusher = SinkStreamPusher(cameraName: TargetCameraName, sinkPropertyName: PopKinectWebcam.sinkPropertyName)
+	var sinkStreamPusher = SinkStreamPusher(cameraName: TargetCameraName, sinkPropertyName: PopKinectWebcam.sinkPropertyName, frameSource: appFrameSource)
 	
 	init()
 	{

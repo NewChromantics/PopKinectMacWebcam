@@ -230,9 +230,11 @@ class CameraWithSinkInterface
 	}
 }
 
+
 //	this class looks for a camera wth a sink stream we can push to
 //	it then delivers any frames pushed in
-class SinkStreamPusher : NSObject, ObservableObject
+//	dont override this, or the observable object breaks
+final class SinkStreamPusher : NSObject, ObservableObject
 {
 	//var logFunctor : (_ message:String) -> Void
 	//@Published public var state = SinkStreamPusherState()
@@ -261,23 +263,20 @@ class SinkStreamPusher : NSObject, ObservableObject
 	
 	var DebugFrames = DebugFrameSource(displayText: "App",clearColour: NSColor.blue.cgColor)
 	
-	let PushFrameRate = 60
+	let frameSource : FrameSource
 	
-	
-	let showTestImageEveryXFrames = 60
-	var pushedFrameCount = 0
-	var testImage = NSImage(named: "TestImage")
 	var _videoDescription: CMFormatDescription!
 	var _bufferPool: CVPixelBufferPool!
 	var _bufferAuxAttributes: NSDictionary!
 
 	
-	init(cameraName:String,sinkPropertyName:String/*,log: @escaping (_ message:String)->()*/)
+	init(cameraName:String,sinkPropertyName:String,frameSource:FrameSource/*,log: @escaping (_ message:String)->()*/)
 	{
 		print("Allocating new CameraController")
 		//self.logFunctor = log
 		self.targetCameraName = cameraName
 		self.sinkPropertyName = sinkPropertyName
+		self.frameSource = frameSource
 		
 		super.init()
 				
@@ -310,6 +309,8 @@ class SinkStreamPusher : NSObject, ObservableObject
 		Log("Error: \(message)")
 	}
 	
+	
+	
 	func Thread() async
 	{
 		while ( !Freed )
@@ -322,7 +323,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 				while ( !Freed )
 				{
 					try await SendNextFrameToStream(camera:Camera)
-					try! await Task.sleep( for:.seconds(1/Double(PushFrameRate)) )
+					//try! await Task.sleep( for:.seconds(1/Double(PushFrameRate)) )
 				}
 			}
 			catch let Error
@@ -386,16 +387,8 @@ class SinkStreamPusher : NSObject, ObservableObject
 	
 	func SendNextFrameToStream(camera:CameraWithSinkInterface) async throws
 	{
-		guard let image = testImage else
-		{
-			throw RuntimeError("Missing test image")
-		}
-		guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else
-		{
-			throw RuntimeError("failed to get image to send to sink")
-		}
-		
-		let Sample = try await GetSampleBuffer(cgImage)
+		let Frame = try await frameSource.PopNewFrame()
+		let Sample = try Frame.sampleBuffer
 		
 		try camera.Send(Sample)
 	}
@@ -447,19 +440,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 		return sbuf
 	}
 		
-	func GetSampleBuffer(_ image:CGImage) async throws -> CMSampleBuffer
-	{
-		pushedFrameCount += 1
-		if ( pushedFrameCount % showTestImageEveryXFrames == 0 )
-		{
-			return try await GetTestImageSampleBuffer(image)
-		}
-		else
-		{
-			let frame = try DebugFrames.PopNewFrameSync()
-			return try frame.sampleBuffer
-		}
-	}
+	
 	
 	
 }
@@ -547,5 +528,42 @@ public extension CMIOObjectPropertyElement {
 	static let anyElement = CMIOObjectPropertyElement(kCMIOObjectPropertyElementWildcard)
 }
 
+/*
+class TestSinkStreamPusher : SinkStreamPusherBase
+{
+	
+	let showTestImageEveryXFrames = 60
+	var pushedFrameCount = 0
+	var testImage = NSImage(named: "TestImage")
 
+	
+	func GetSampleBuffer() async throws -> CMSampleBuffer
+	{
+		guard let image = testImage else
+		{
+			throw RuntimeError("Missing test image")
+		}
+		guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else
+		{
+			throw RuntimeError("failed to get image to send to sink")
+		}
+		
+		let Sample = try await GetSampleBuffer(cgImage)
+		return Sample
+	}
 
+	func GetSampleBuffer(_ image:CGImage) async throws -> CMSampleBuffer
+	{
+		pushedFrameCount += 1
+		if ( pushedFrameCount % showTestImageEveryXFrames == 0 )
+		{
+			return try await GetTestImageSampleBuffer(image)
+		}
+		else
+		{
+			let frame = try DebugFrames.PopNewFrameSync()
+			return try frame.sampleBuffer
+		}
+	}
+}
+*/
