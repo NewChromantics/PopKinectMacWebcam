@@ -5,13 +5,10 @@ import os.log
 import Cocoa
 
 
-public let SinkPropertyKey = "sink"
-let SinkProperty : CMIOExtensionProperty = CMIOExtensionProperty(rawValue: "4cc_\(SinkPropertyKey)_glob_0000")
 
 
 
 let kFrameRate: Int = 60
-let cameraName = "PopShaderCamera Camera Name"
 let fixedCamWidth: Int32 = 1280
 let fixedCamHeight: Int32 = 720
 
@@ -21,11 +18,11 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 {
 	var debugFrameSource = DebugFrameSource(displayText: "Something", clearColour: NSColor.magenta.cgColor)
 	
-	private(set) var device: CMIOExtensionDevice!
+	var device: CMIOExtensionDevice!
 	
-	public var _streamSource: cameraStreamSource!
-	private var _videoDescription: CMFormatDescription!
-	public var _streamSink: cameraStreamSink!
+	var _streamSource: cameraStreamSource!
+	var _videoDescription: CMFormatDescription!
+	var _streamSink: cameraStreamSink!
 	var _streamingCounter: UInt32 = 0
 	var isStreamBeingWatched : Bool	{	return _streamingCounter > 0	}
 	
@@ -35,8 +32,9 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	var lastError : String? = nil
 	
 	
-	init(localizedName: String) {
-		
+	init(localizedName: String)
+	{
+		let SinkPropertyKey = "sink"
 		
 		super.init()
 		let deviceID = UUID()
@@ -51,25 +49,30 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		let videoStreamFormat = CMIOExtensionStreamFormat.init(formatDescription: _videoDescription, maxFrameDuration: CMTime(value: 1, timescale: Int32(kFrameRate)), minFrameDuration: CMTime(value: 1, timescale: Int32(kFrameRate)), validFrameDurations: nil)
 		
 		let videoID = UUID()
-		_streamSource = cameraStreamSource(localizedName: "PopShaderCamera.Video", streamID: videoID, streamFormat: videoStreamFormat, device: device)
+		_streamSource = cameraStreamSource(localizedName: "OutputStream", streamID: videoID, streamFormat: videoStreamFormat, device: device)
 		let videoSinkID = UUID()
-		_streamSink = cameraStreamSink(localizedName: "PopShaderCamera.Video.Sink", streamID: videoSinkID, streamFormat: videoStreamFormat, device: device)
-		do {
+		_streamSink = cameraStreamSink(localizedName: "Sink", streamID: videoSinkID, streamFormat: videoStreamFormat, device: device, sinkPropertyKey: SinkPropertyKey)
+		
+		do
+		{
 			try device.addStream(_streamSource.stream)
 			try device.addStream(_streamSink.stream)
-		} catch let error {
+		}
+		catch let error
+		{
 			fatalError("Failed to add stream: \(error.localizedDescription)")
 		}
 	}
 	
 	var availableProperties: Set<CMIOExtensionProperty> {
 		
-		return [.deviceTransportType, .deviceModel]
+		return [/*.deviceTransportType, .deviceModel*/]
 	}
 	
 	func deviceProperties(forProperties properties: Set<CMIOExtensionProperty>) throws -> CMIOExtensionDeviceProperties {
 		
 		let deviceProperties = CMIOExtensionDeviceProperties(dictionary: [:])
+		/*
 		if properties.contains(.deviceTransportType) {
 			deviceProperties.transportType = kIOAudioDeviceTransportTypeVirtual
 		}
@@ -77,7 +80,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 			//deviceProperties.setPropertyState(CMIOExtensionPropertyState(value: "toto" as NSString), forProperty: .deviceModel)
 			deviceProperties.model = "PopShaderCamera Model"
 		}
-		
+		*/
 		return deviceProperties
 	}
 	
@@ -86,14 +89,15 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		// Handle settable properties here.
 	}
 	
-	
-	func UpdateFrame()
+	func UpdateFrameAsync() async
 	{
 		//	if there are clients attached to the sink, consume from them
 		for client in self._streamSink.stream.streamingClients
 		{
 			do
 			{
+				//	this async version will crash with a nil unwrap - but not sure why/where
+				//try await self.consumeOneBufferAsync(client)
 				try self.consumeOneBuffer(client)
 				return
 			}
@@ -119,8 +123,8 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 			//	display an error
 			self.lastError = "\(error.localizedDescription)"
 		}
-		
 	}
+	
 	
 	
 	func startStreaming() throws
@@ -141,7 +145,10 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		consumeSinkTimer.schedule(deadline: .now(), repeating: 1.0/Double(kFrameRate), leeway: .seconds(0))
 		consumeSinkTimer.setEventHandler
 		{
-			self.UpdateFrame()
+			Task
+			{
+				await self.UpdateFrameAsync()
+			}
 		}
 		
 		consumeSinkTimer.setCancelHandler
@@ -166,6 +173,27 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		}
 	}
 	
+	func consumeOneBufferAsync(_ client: CMIOExtensionClient) async throws
+	{
+		do
+		{
+			let (Sample,SequenceNumber,Discontinuity,HasMoreSamples) = try await self._streamSink.stream.consumeSampleBuffer(from: client)
+			let Now = CMClockGetTime(CMClockGetHostTimeClock())
+			let NowNanos = UInt64(Now.seconds * Double(NSEC_PER_SEC))
+			
+			let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: SequenceNumber, hostTimeInNanoseconds:NowNanos)
+			if self.isStreamBeingWatched
+			{
+				self._streamSource.stream.send(Sample, discontinuity: [], hostTimeInNanoseconds: UInt64(Sample.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+			}
+			self._streamSink.stream.notifyScheduledOutputChanged(output)
+		}
+		catch let Error
+		{
+			let error = Error.localizedDescription
+			throw RuntimeError("consumeOneBufferAsync Error \(error)")
+		}
+	}
 	
 	func consumeOneBuffer(_ client: CMIOExtensionClient) throws
 	{
@@ -197,40 +225,13 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 			throw RuntimeError(SomeError)
 		}
 	}
-	/*
-	 func consumeBuffer(_ client: CMIOExtensionClient)
-	 {
-	 if sinkStarted == false {
-	 return
-	 }
-	 self._streamSink.stream.consumeSampleBuffer(from: client)
-	 {
-	 sbuf, seq, discontinuity, hasMoreSampleBuffers, err in
-	 if let sbuf
-	 {
-	 self.lastTimingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
-	 let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds: UInt64(self.lastTimingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-	 if self._streamingCounter > 0
-	 {
-	 self._streamSource.stream.send(sbuf, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-	 }
-	 self._streamSink.stream.notifyScheduledOutputChanged(output)
-	 }
-	 else
-	 {
-	 self.lastError = err?.localizedDescription ?? "ConsumeBuffer missing sample"
-	 }
-	 
-	 self.consumeBuffer(client)
-	 }
-	 }
-	 */
+	
 }
 
 
 
-class cameraStreamSource: NSObject, CMIOExtensionStreamSource {
-	
+class cameraStreamSource : NSObject, CMIOExtensionStreamSource
+{
 	private(set) var stream: CMIOExtensionStream!
 	
 	let parent : CMIOExtensionDevice	//	parent
@@ -307,11 +308,20 @@ class cameraStreamSink: NSObject, CMIOExtensionStreamSource {
 	private let _streamFormat: CMIOExtensionStreamFormat
 	var client: CMIOExtensionClient?
 	
-	init(localizedName: String, streamID: UUID, streamFormat: CMIOExtensionStreamFormat, device: CMIOExtensionDevice) {
-		
+	var sinkPropertyKey : String
+	let sinkProperty : CMIOExtensionProperty
+	var sinkPropertyValue = "Hello"
+	
+	init(localizedName: String, streamID: UUID, streamFormat: CMIOExtensionStreamFormat, device: CMIOExtensionDevice, sinkPropertyKey:String)
+	{
+		self.sinkPropertyKey = sinkPropertyKey
+		self.sinkProperty = CMIOExtensionProperty(rawValue: "4cc_\(sinkPropertyKey)_glob_0000")
+
 		self.device = device
 		self._streamFormat = streamFormat
+		
 		super.init()
+		
 		self.stream = CMIOExtensionStream(localizedName: localizedName, streamID: streamID, direction: .sink, clockType: .hostTime, source: self)
 	}
 	
@@ -323,17 +333,20 @@ class cameraStreamSink: NSObject, CMIOExtensionStreamSource {
 	var availableProperties: Set<CMIOExtensionProperty>
 	{
 		return [
-			SinkProperty,
+			sinkProperty/*,
 			.streamFrameDuration,
 			.streamSinkBufferQueueSize,
 			.streamSinkBuffersRequiredForStartup,
 			.streamSinkBufferUnderrunCount,
 			.streamSinkEndOfData
+						 */
 		]
 	}
 	
-	func streamProperties(forProperties properties: Set<CMIOExtensionProperty>) throws -> CMIOExtensionStreamProperties {
+	func streamProperties(forProperties properties: Set<CMIOExtensionProperty>) throws -> CMIOExtensionStreamProperties
+	{
 		let streamProperties = CMIOExtensionStreamProperties(dictionary: [:])
+		/*
 		if properties.contains(.streamFrameDuration) {
 			let frameDuration = CMTime(value: 1, timescale: Int32(kFrameRate))
 			streamProperties.frameDuration = frameDuration
@@ -344,8 +357,8 @@ class cameraStreamSink: NSObject, CMIOExtensionStreamSource {
 		if properties.contains(.streamSinkBuffersRequiredForStartup) {
 			streamProperties.sinkBuffersRequiredForStartup = 1
 		}
-		
-		streamProperties.setPropertyState( CMIOExtensionPropertyState(value: "Hello" as NSString), forProperty: SinkProperty )
+		*/
+		streamProperties.setPropertyState( CMIOExtensionPropertyState(value: sinkPropertyValue as NSString), forProperty: sinkProperty )
 		
 		return streamProperties
 	}
@@ -363,18 +376,11 @@ class cameraStreamSink: NSObject, CMIOExtensionStreamSource {
 	
 	func startStream() throws
 	{
-		guard let deviceSource = device.source as? cameraDeviceSource else
-		{
-			fatalError("Unexpected source type \(String(describing: device.source))")
-		}
+		//	something now wants to push to the sink
 	}
 	
 	func stopStream() throws
 	{
-		guard let deviceSource = device.source as? cameraDeviceSource else
-		{
-			fatalError("Unexpected source type \(String(describing: device.source))")
-		}
 	}
 }
 
