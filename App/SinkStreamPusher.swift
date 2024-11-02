@@ -259,25 +259,12 @@ class SinkStreamPusher : NSObject, ObservableObject
 	
 	var DebugFrames = DebugFrameSource(displayText: "App",clearColour: NSColor.cyan.cgColor)
 	
-	private var needToStream: Bool = false
+	var PushFrameRate = 60
 	private var testImage = NSImage(named: "TestImage")
-	private var activating: Bool = false
-	private var readyToEnqueue = false
-	private var enqueued = false
 	private var _videoDescription: CMFormatDescription!
 	private var _bufferPool: CVPixelBufferPool!
 	private var _bufferAuxAttributes: NSDictionary!
-	private var _whiteStripeStartRow: UInt32 = 0
-	private var _whiteStripeIsAscending: Bool = false
-	private var overlayMessage: Bool = false
-	private var sequenceNumber = 0
-	private var SendImageTimer: Timer?
-	private var ReadPropertyTimer: Timer?
-	var SendImageIntervalSecs = 1/CGFloat(60)
-	var ReadPropertyIntervalSecs = 2.0
-	
-	var sourceStream: CMIOStreamID?
-	//var sinkStream: CMIOStreamID?
+
 	
 	init(cameraName:String/*,log: @escaping (_ message:String)->()*/)
 	{
@@ -289,12 +276,6 @@ class SinkStreamPusher : NSObject, ObservableObject
 				
 		InitBufferPool()
 		
-		/*
-		self.registerForDeviceNotifications()
-		self.makeDevicesVisible()
-		self.connectToCamera()
-		self.initTimer()
-		 */
 		Task
 		{
 			await Thread()
@@ -334,7 +315,7 @@ class SinkStreamPusher : NSObject, ObservableObject
 				while ( !Freed )
 				{
 					try await SendNextFrameToStream(camera:Camera)
-					try! await Task.sleep( for:.seconds(1/30.0) )
+					try! await Task.sleep( for:.seconds(1/Double(PushFrameRate)) )
 				}
 			}
 			catch let Error
@@ -412,219 +393,6 @@ class SinkStreamPusher : NSObject, ObservableObject
 		try camera.Send(Sample)
 	}
 	
-/*
-	func getProperty(streamId: CMIOStreamID,key:String) throws -> String
-	{
-		let selector = FourCharCode(key)
-		var address = CMIOObjectPropertyAddress(selector, .global, .main)
-		let exists = CMIOObjectHasProperty(streamId, &address)
-		if ( !exists )
-		{
-			throw RuntimeError("Missing property \(key)")
-		}
-		
-		var dataSize: UInt32 = 0
-		var dataUsed: UInt32 = 0
-		CMIOObjectGetPropertyDataSize(streamId, &address, 0, nil, &dataSize)
-		var name: CFString = "" as NSString
-		CMIOObjectGetPropertyData(streamId, &address, 0, nil, dataSize, &dataUsed, &name);
-		return name as String
-	}
-	
-	func setProperty(streamId: CMIOStreamID, newValue: String, key: String) throws
-	{
-		let selector = FourCharCode(key)
-		var address = CMIOObjectPropertyAddress(selector, .global, .main)
-		let exists = CMIOObjectHasProperty(streamId, &address)
-		if ( !exists )
-		{
-			throw RuntimeError("No such property \(key)")
-		}
-		
-		var IsWritable : DarwinBoolean = false
-		CMIOObjectIsPropertySettable(streamId,&address,&IsWritable)
-		if ( IsWritable == false )
-		{
-			throw RuntimeError("Property \(key) is not Settable")
-		}
-		
-		//	write string into the data
-		var dataSize: UInt32 = 0
-		CMIOObjectGetPropertyDataSize(streamId, &address, 0, nil, &dataSize)
-		var newName: CFString = newValue as NSString
-		//var value : UnsafePointer = (newValue as NSString).utf8String!
-		CMIOObjectSetPropertyData(streamId, &address, 0, nil, dataSize, &newName )
-	}
-	
-	func makeDevicesVisible(){
-		var prop = CMIOObjectPropertyAddress(
-			mSelector: CMIOObjectPropertySelector(kCMIOHardwarePropertyAllowScreenCaptureDevices),
-			mScope: CMIOObjectPropertyScope(kCMIOObjectPropertyScopeGlobal),
-			mElement: CMIOObjectPropertyElement(kCMIOObjectPropertyElementMain))
-		var allow : UInt32 = 1
-		let dataSize : UInt32 = 4
-		let zero : UInt32 = 0
-		CMIOObjectSetPropertyData(CMIOObjectID(kCMIOObjectSystemObject), &prop, zero, nil, dataSize, &allow)
-	}
-	
-	
-	func initSink(deviceId: CMIODeviceID, sinkStream: CMIOStreamID)
-	{
-		let dims = CMVideoDimensions(width: fixedCamWidth, height: fixedCamHeight)
-		CMVideoFormatDescriptionCreate(
-			allocator: kCFAllocatorDefault,
-			codecType: kCVPixelFormatType_32BGRA,
-			width: dims.width, height: dims.height, extensions: nil, formatDescriptionOut: &_videoDescription)
-		
-		var pixelBufferAttributes: NSDictionary!
-		pixelBufferAttributes = [
-			kCVPixelBufferWidthKey: dims.width,
-			kCVPixelBufferHeightKey: dims.height,
-			kCVPixelBufferPixelFormatTypeKey: _videoDescription.mediaSubType,
-			kCVPixelBufferIOSurfacePropertiesKey: [:]
-		]
-		
-		CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, pixelBufferAttributes, &_bufferPool)
-		
-		let pointerQueue = UnsafeMutablePointer<Unmanaged<CMSimpleQueue>?>.allocate(capacity: 1)
-		// see https://stackoverflow.com/questions/53065186/crash-when-accessing-refconunsafemutablerawpointer-inside-cgeventtap-callback
-		//let pointerRef = UnsafeMutableRawPointer(Unmanaged.passRetained(self).toOpaque())
-		let pointerRef = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
-		let result = CMIOStreamCopyBufferQueue(sinkStream,
-											   {
-			(sinkStream: CMIOStreamID, buf: UnsafeMutableRawPointer?, refcon: UnsafeMutableRawPointer?) in
-			let sender = Unmanaged<CameraController>.fromOpaque(refcon!).takeUnretainedValue()
-			sender.readyToEnqueue = true
-		},pointerRef,pointerQueue)
-		if result != 0 {
-			showMessage("error starting sink")
-		} else {
-			if let queue = pointerQueue.pointee {
-				self.sinkQueue = queue.takeUnretainedValue()
-			}
-			let resultStart = CMIODeviceStartStream(deviceId, sinkStream) == 0
-			if resultStart {
-				showMessage("initSink started")
-			} else {
-				showMessage("initSink error startstream")
-			}
-		}
-	}
- 
-
-	
-	func getDevice(name: String) -> AVCaptureDevice? {
-		print("getDevice name=",name)
-		var devices: [AVCaptureDevice]?
-		if #available(macOS 10.15, *) {
-			let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.externalUnknown],
-																	mediaType: .video,
-																	position: .unspecified)
-			devices = discoverySession.devices
-		} else {
-			// Fallback on earlier versions
-			devices = AVCaptureDevice.devices(for: .video)
-		}
-		guard let devices = devices else { return nil }
-		return devices.first { $0.localizedName == name}
-	}
-	
-	
-	
-	func connectToCamera()
-	{
-		if let device = getDevice(name: cameraName), let deviceObjectId = getCMIODevice(uid: device.uniqueID) {
-			let streamIds = getInputStreams(deviceId: deviceObjectId)
-			if streamIds.count == 2
-			{
-				sinkStream = streamIds[1]
-				showMessage("found sink stream")
-				initSink(deviceId: deviceObjectId, sinkStream: streamIds[1])
-			}
-			if let firstStream = streamIds.first
-			{
-				showMessage("found source stream")
-				sourceStream = firstStream
-			}
-		}
-	}
-	
-	func initTimer()
-	{
-		SendImageTimer?.invalidate()
-		SendImageTimer = Timer.scheduledTimer(timeInterval: SendImageIntervalSecs, target: self, selector: #selector(OnSendImageTimerTick), userInfo: nil, repeats: true)
-		
-		ReadPropertyTimer?.invalidate()
-		ReadPropertyTimer = Timer.scheduledTimer(timeInterval: ReadPropertyIntervalSecs, target: self, selector: #selector(OnPropertyTimerTick), userInfo: nil, repeats: true)
-	}
-	
-	@objc func OnSendImageTimerTick() {
-		if needToStream {
-			if (enqueued == false || readyToEnqueue == true), let queue = self.sinkQueue {
-				enqueued = true
-				readyToEnqueue = false
-				if let image = testImage, let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-					self.enqueue(queue, cgImage)
-				}
-			}
-		}
-	}
-
-	
-	@objc func OnPropertyTimerTick()
-	{
-		if let sourceStream = sourceStream
-		{
-			//	clear the SinkCounter property
-			//	then re-read it
-			do
-			{
-				try self.setProperty(streamId: sourceStream, newValue: "random", key:"just")
-				let just = try self.getProperty(streamId: sourceStream, key:"just")
-				
-				if just == "SinkConsumerCounter=1" {
-					needToStream = true
-				} else {
-					needToStream = false
-				}
-			}
-			catch let error
-			{
-				OnError( error.localizedDescription )
-			}
-		}
-	}
-	
-	func OnNewCameraDeviceConnected(notification:Notification)
-	{
-		if ( notification.name != NSNotification.Name.AVCaptureDeviceWasConnected )
-		{
-			return
-		}
-		
-		//	gr: Im not sure how to get any more info out of this Notification type - what can i cast .object to?
-		let device = notification.object as! AVCaptureDevice?
-		var DeviceName = "null"
-		if let device
-		{
-			let DeviceType = type(of:device)
-			//let DeviceType = device.deviceType
-			DeviceName = "\(device.localizedName) (\(DeviceType)) [\(device.uniqueID)]"
-		}
-		//showMessage("New camera device connected; \(notification.description)")
-		showMessage("New camera device connected; \(DeviceName)")
-		if self.sourceStream == nil
-		{
-			//self.connectToCamera()
-		}
-	}
-	
-	func registerForDeviceNotifications()
-	{
-		NotificationCenter.default.addObserver(forName: NSNotification.Name.AVCaptureDeviceWasConnected, object: nil, queue: nil, using:OnNewCameraDeviceConnected )
-	}
-	
-	*/
 	func GetSampleBuffer(_ image:CGImage) async throws -> CMSampleBuffer
 	{
 		let frame = try await DebugFrames.PopNewFrame()
@@ -676,77 +444,6 @@ class SinkStreamPusher : NSObject, ObservableObject
 		return sbuf
 	}
 	
-	/*
-	func enqueue(_ queue: CMSimpleQueue, _ image: CGImage) {
-		guard CMSimpleQueueGetCount(queue) < CMSimpleQueueGetCapacity(queue) else {
-			print("error enqueuing")
-			return
-		}
-		var err: OSStatus = 0
-		var pixelBuffer: CVPixelBuffer?
-		err = CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(kCFAllocatorDefault, self._bufferPool, self._bufferAuxAttributes, &pixelBuffer)
-		if let pixelBuffer = pixelBuffer {
-			
-			CVPixelBufferLockBaseAddress(pixelBuffer, [])
-			
-			/*var bufferPtr = CVPixelBufferGetBaseAddress(pixelBuffer)!
-			 let width = CVPixelBufferGetWidth(pixelBuffer)
-			 let height = CVPixelBufferGetHeight(pixelBuffer)
-			 let rowBytes = CVPixelBufferGetBytesPerRow(pixelBuffer)
-			 memset(bufferPtr, 0, rowBytes * height)
-			 
-			 let whiteStripeStartRow = self._whiteStripeStartRow
-			 if self._whiteStripeIsAscending {
-			 self._whiteStripeStartRow = whiteStripeStartRow - 1
-			 self._whiteStripeIsAscending = self._whiteStripeStartRow > 0
-			 }
-			 else {
-			 self._whiteStripeStartRow = whiteStripeStartRow + 1
-			 self._whiteStripeIsAscending = self._whiteStripeStartRow >= (height - kWhiteStripeHeight)
-			 }
-			 bufferPtr += rowBytes * Int(whiteStripeStartRow)
-			 for _ in 0..<kWhiteStripeHeight {
-			 for _ in 0..<width {
-			 var white: UInt32 = 0xFFFFFFFF
-			 memcpy(bufferPtr, &white, MemoryLayout.size(ofValue: white))
-			 bufferPtr += MemoryLayout.size(ofValue: white)
-			 }
-			 }*/
-			let pixelData = CVPixelBufferGetBaseAddress(pixelBuffer)
-			let width = CVPixelBufferGetWidth(pixelBuffer)
-			let height = CVPixelBufferGetHeight(pixelBuffer)
-			let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
-			// optimizing context: interpolationQuality and bitmapInfo
-			// see https://stackoverflow.com/questions/7560979/cgcontextdrawimage-is-extremely-slow-after-large-uiimage-drawn-into-it
-			if let context = CGContext(data: pixelData,
-									   width: width,
-									   height: height,
-									   bitsPerComponent: 8,
-									   bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
-									   space: rgbColorSpace,
-									   //bitmapInfo: UInt32(CGImageAlphaInfo.noneSkipFirst.rawValue) | UInt32(CGImageByteOrderInfo.order32Little.rawValue))
-									   bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue)
-			{
-				context.interpolationQuality = .low
-				context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-			}
-			CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-			
-			var sbuf: CMSampleBuffer!
-			var timingInfo = CMSampleTimingInfo()
-			timingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
-			err = CMSampleBufferCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer, dataReady: true, makeDataReadyCallback: nil, refcon: nil, formatDescription: self._videoDescription, sampleTiming: &timingInfo, sampleBufferOut: &sbuf)
-			if err == 0 {
-				if let sbuf = sbuf {
-					let pointerRef = UnsafeMutableRawPointer(Unmanaged.passRetained(sbuf).toOpaque())
-					CMSimpleQueueEnqueue(queue, element: pointerRef)
-				}
-			}
-		} else {
-			print("error getting pixel buffer")
-		}
-	}
- */
 	
 }
 
