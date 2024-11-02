@@ -122,6 +122,11 @@ class DebugFrameSource : FrameSource
 		let DelayMs = 1000 / Double(frameRate)
 		try await Task.sleep(for:.milliseconds(DelayMs))
 		
+		return try PopNewFrameSync()
+	}
+	
+	func PopNewFrameSync() throws -> Frame
+	{
 		var pixelBufferMaybe: CVPixelBuffer?
 		let timestamp = CMClockGetTime(CMClockGetHostTimeClock())
 		
@@ -141,7 +146,7 @@ class DebugFrameSource : FrameSource
 		let frame = Frame(pixels: pixelBuffer, format: self.videoFormat, time: timestamp)
 		
 		frameCounter = frameCounter+1
-
+		
 		return frame
 	}
 	

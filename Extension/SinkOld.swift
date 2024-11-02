@@ -10,15 +10,12 @@ let fixedCamWidth: Int32 = 1280
 let fixedCamHeight: Int32 = 720
 
 
-let textColor = NSColor.white
-let fontSize = 24.0
-let textFont = NSFont.systemFont(ofSize: fontSize)
 let CMIOExtensionPropertyCustomPropertyData_just: CMIOExtensionProperty = CMIOExtensionProperty(rawValue: "4cc_just_glob_0000")
-let kWhiteStripeHeight: Int = 10
 
 
 class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 {
+	var debugFrameSource = DebugFrameSource(displayText: "Something", clearColour: NSColor.magenta.cgColor)
 	
 	private(set) var device: CMIOExtensionDevice!
 	
@@ -32,15 +29,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	private let _timerQueue = DispatchQueue(label: "timerQueue", qos: .userInteractive, attributes: [], autoreleaseFrequency: .workItem, target: .global(qos: .userInteractive))
 	
 	private var _videoDescription: CMFormatDescription!
-	
-	private var _bufferPool: CVPixelBufferPool!
-	
-	private var _bufferAuxAttributes: NSDictionary!
-	
-	private var _whiteStripeStartRow: UInt32 = 0
-	
-	private var _whiteStripeIsAscending: Bool = false
-	
+		
 	
 	//	rendering
 	var clearColor : CGColor = NSColor.black.cgColor
@@ -54,12 +43,7 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	
 	init(localizedName: String) {
 		
-		paragraphStyle.alignment = NSTextAlignment.center
-		textFontAttributes = [
-			NSAttributedString.Key.font: textFont,
-			NSAttributedString.Key.foregroundColor: textColor,
-			NSAttributedString.Key.paragraphStyle: paragraphStyle
-		]
+		
 		super.init()
 		let deviceID = UUID()
 		self.device = CMIOExtensionDevice(localizedName: localizedName, deviceID: deviceID, legacyDeviceID: deviceID.uuidString, source: self)
@@ -78,10 +62,8 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 			kCVPixelBufferPixelFormatTypeKey: _videoDescription.mediaSubType,
 			kCVPixelBufferIOSurfacePropertiesKey: [:]
 		]
-		CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, pixelBufferAttributes, &_bufferPool)
 		
 		let videoStreamFormat = CMIOExtensionStreamFormat.init(formatDescription: _videoDescription, maxFrameDuration: CMTime(value: 1, timescale: Int32(kFrameRate)), minFrameDuration: CMTime(value: 1, timescale: Int32(kFrameRate)), validFrameDurations: nil)
-		_bufferAuxAttributes = [kCVPixelBufferPoolAllocationThresholdKey: 5]
 		
 		let videoID = UUID()
 		_streamSource = cameraStreamSource(localizedName: "PopShaderCamera.Video", streamID: videoID, streamFormat: videoStreamFormat, device: device)
@@ -120,70 +102,9 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		// Handle settable properties here.
 	}
 	
-	let paragraphStyle = NSMutableParagraphStyle()
-	let textFontAttributes: [NSAttributedString.Key : Any]
 	
-	func RenderFrame(_ pixelBuffer:CVPixelBuffer,timestamp:CMTime)
+	func startStreaming()
 	{
-		var text = self.lastError ?? displayMessage
-		text = text + " \(Int(timestamp.seconds*1000))"
-		
-		let pixelData = CVPixelBufferGetBaseAddress(pixelBuffer)
-		let width = CVPixelBufferGetWidth(pixelBuffer)
-		let height = CVPixelBufferGetHeight(pixelBuffer)
-		let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
-		if let context = CGContext(data: pixelData,
-								   width: width,
-								   height: height,
-								   bitsPerComponent: 8,
-								   bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
-								   space: rgbColorSpace,
-								   //bitmapInfo: UInt32(CGImageAlphaInfo.noneSkipFirst.rawValue) | UInt32(CGImageByteOrderInfo.order32Little.rawValue))
-								   bitmapInfo: CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue)
-		{
-			
-			let graphicsContext = NSGraphicsContext(cgContext: context, flipped: false)
-			NSGraphicsContext.saveGraphicsState()
-			NSGraphicsContext.current = graphicsContext
-			let cgContext = graphicsContext.cgContext
-			let dstRect = CGRect(x: 0, y: 0, width: width, height: height)
-			cgContext.clear(dstRect)
-			cgContext.setFillColor(clearColor)
-			cgContext.fill(dstRect)
-			let textOrigin = CGPoint(x: 0, y: -height/2 + Int(fontSize/2.0))
-			let rect = CGRect(origin: textOrigin, size: NSSize(width: width, height: height))
-			text.draw(in: rect, withAttributes: self.textFontAttributes)
-			NSGraphicsContext.restoreGraphicsState()
-		}
-	}
-	
-	func PopNewFrame() throws -> (CVPixelBuffer,CMTime)?
-	{
-		var pixelBufferMaybe: CVPixelBuffer?
-		let timestamp = CMClockGetTime(CMClockGetHostTimeClock())
-		
-		let err: OSStatus = CVPixelBufferPoolCreatePixelBufferWithAuxAttributes(kCFAllocatorDefault, self._bufferPool, self._bufferAuxAttributes, &pixelBufferMaybe)
-		if err != 0 || pixelBufferMaybe == nil
-		{
-			throw RuntimeError("Failed to allocate pixel buffer \(err)")
-		}
-		
-		let pixelBuffer = pixelBufferMaybe!
-		
-		//	lock pixels & draw
-		CVPixelBufferLockBaseAddress(pixelBuffer, [])
-		RenderFrame(pixelBuffer,timestamp:timestamp)
-		CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-		
-		return (pixelBuffer,timestamp)
-	}
-	
-	func startStreaming() {
-		
-		guard let _ = _bufferPool else {
-			return
-		}
-		
 		_streamingCounter += 1
 		_timer = DispatchSource.makeTimerSource(flags: .strict, queue: _timerQueue)
 		_timer!.schedule(deadline: .now(), repeating: 1.0/Double(kFrameRate), leeway: .seconds(0))
@@ -198,6 +119,8 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 			
 			do
 			{
+				let Frame = try self.debugFrameSource.PopNewFrameSync()
+				/*
 				let Frame = try self.PopNewFrame()
 				if ( Frame == nil )
 				{
@@ -215,6 +138,8 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 					throw RuntimeError("Error creating sample buffer \(err)")
 				}
 				self._streamSource.stream.send(sbuf, discontinuity: [], hostTimeInNanoseconds: UInt64(timingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+				*/
+				try self._streamSource.stream.send( Frame.sampleBuffer, discontinuity: [], hostTimeInNanoseconds: Frame.timeNanos )
 				
 				//	remove error
 				self.lastError = nil
