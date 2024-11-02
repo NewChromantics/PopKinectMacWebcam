@@ -24,20 +24,16 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 	private(set) var device: CMIOExtensionDevice!
 	
 	public var _streamSource: cameraStreamSource!
-	public var _streamSink: cameraStreamSink!
-	private var _streamingCounter: UInt32 = 0
-	private var _streamingSinkCounter: UInt32 = 0
 	private var _videoDescription: CMFormatDescription!
-
+	public var _streamSink: cameraStreamSink!
+	var _streamingCounter: UInt32 = 0
+	var isStreamBeingWatched : Bool	{	return _streamingCounter > 0	}
+	
 	var consumeSinkTimer: DispatchSourceTimer?
 	let consumeSinkTimerQueue = DispatchQueue(label: "consumeSinkTimerQueue", qos: .userInteractive, attributes: [], autoreleaseFrequency: .workItem, target: .global(qos: .userInteractive))
 	
-		
 	var lastError : String? = nil
 	
-	func myStreamingCounter() -> String {
-		return "SinkConsumerCounter=\(_streamingCounter)"
-	}
 	
 	init(localizedName: String) {
 		
@@ -85,33 +81,29 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		return deviceProperties
 	}
 	
-	func setDeviceProperties(_ deviceProperties: CMIOExtensionDeviceProperties) throws {
-		
-		
+	func setDeviceProperties(_ deviceProperties: CMIOExtensionDeviceProperties) throws
+	{
 		// Handle settable properties here.
 	}
 	
 	
 	func UpdateFrame()
 	{
-		//	if we're not using consume buffer, show our debug
-		//if self.sinkStarted
-		if true
+		//	if there are clients attached to the sink, consume from them
+		for client in self._streamSink.stream.streamingClients
 		{
-			for client in self._streamSink.stream.streamingClients
+			do
 			{
-				do
-				{
-					try self.consumeOneBuffer(client)
-					return
-				}
-				catch let err
-				{
-					self.lastError = err.localizedDescription
-				}
+				try self.consumeOneBuffer(client)
+				return
+			}
+			catch let err
+			{
+				self.lastError = err.localizedDescription
 			}
 		}
 		
+		//	haven't consumed from buffer, push a debug frame
 		do
 		{
 			self.debugFrameSource.displayText = self.lastError ?? "Waiting for something"
@@ -174,8 +166,6 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 		}
 	}
 	
-	var sinkStarted = false
-	var lastTimingInfo = CMSampleTimingInfo()
 	
 	func consumeOneBuffer(_ client: CMIOExtensionClient) throws
 	{
@@ -185,9 +175,11 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 			sbuf, seq, discontinuity, hasMoreSampleBuffers, err in
 			if let sbuf
 			{
-				self.lastTimingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
-				let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds: UInt64(self.lastTimingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-				if self._streamingCounter > 0
+				let Now = CMClockGetTime(CMClockGetHostTimeClock())
+				let NowNanos = UInt64(Now.seconds * Double(NSEC_PER_SEC))
+				
+				let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds:NowNanos)
+				if self.isStreamBeingWatched
 				{
 					self._streamSource.stream.send(sbuf, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
 				}
@@ -205,50 +197,35 @@ class cameraDeviceSource: NSObject, CMIOExtensionDeviceSource
 			throw RuntimeError(SomeError)
 		}
 	}
-	
-	func consumeBuffer(_ client: CMIOExtensionClient)
-	{
-		if sinkStarted == false {
-			return
-		}
-		self._streamSink.stream.consumeSampleBuffer(from: client)
-		{
-			sbuf, seq, discontinuity, hasMoreSampleBuffers, err in
-			if let sbuf
-			{
-				self.lastTimingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
-				let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds: UInt64(self.lastTimingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-				if self._streamingCounter > 0
-				{
-					self._streamSource.stream.send(sbuf, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
-				}
-				self._streamSink.stream.notifyScheduledOutputChanged(output)
-			}
-			else
-			{
-				self.lastError = err?.localizedDescription ?? "ConsumeBuffer missing sample"
-			}
-
-			self.consumeBuffer(client)
-		}
-	}
-	
-	func startStreamingSink(client: CMIOExtensionClient) {
-		
-		_streamingSinkCounter += 1
-		self.sinkStarted = true
-		//consumeBuffer(client)
-	}
-	
-	func stopStreamingSink() {
-		self.sinkStarted = false
-		if _streamingSinkCounter > 1 {
-			_streamingSinkCounter -= 1
-		}
-		else {
-			_streamingSinkCounter = 0
-		}
-	}}
+	/*
+	 func consumeBuffer(_ client: CMIOExtensionClient)
+	 {
+	 if sinkStarted == false {
+	 return
+	 }
+	 self._streamSink.stream.consumeSampleBuffer(from: client)
+	 {
+	 sbuf, seq, discontinuity, hasMoreSampleBuffers, err in
+	 if let sbuf
+	 {
+	 self.lastTimingInfo.presentationTimeStamp = CMClockGetTime(CMClockGetHostTimeClock())
+	 let output: CMIOExtensionScheduledOutput = CMIOExtensionScheduledOutput(sequenceNumber: seq, hostTimeInNanoseconds: UInt64(self.lastTimingInfo.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+	 if self._streamingCounter > 0
+	 {
+	 self._streamSource.stream.send(sbuf, discontinuity: [], hostTimeInNanoseconds: UInt64(sbuf.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
+	 }
+	 self._streamSink.stream.notifyScheduledOutputChanged(output)
+	 }
+	 else
+	 {
+	 self.lastError = err?.localizedDescription ?? "ConsumeBuffer missing sample"
+	 }
+	 
+	 self.consumeBuffer(client)
+	 }
+	 }
+	 */
+}
 
 
 
@@ -256,15 +233,13 @@ class cameraStreamSource: NSObject, CMIOExtensionStreamSource {
 	
 	private(set) var stream: CMIOExtensionStream!
 	
-	let device: CMIOExtensionDevice
-	//public var nConnectedClients = 0
+	let parent : CMIOExtensionDevice	//	parent
 	private let _streamFormat: CMIOExtensionStreamFormat
-	var count = 0
-
+	
 	
 	init(localizedName: String, streamID: UUID, streamFormat: CMIOExtensionStreamFormat, device: CMIOExtensionDevice) {
 		
-		self.device = device
+		self.parent = device
 		self._streamFormat = streamFormat
 		super.init()
 		self.stream = CMIOExtensionStream(localizedName: localizedName, streamID: streamID, direction: .source, clockType: .hostTime, source: self)
@@ -306,9 +281,9 @@ class cameraStreamSource: NSObject, CMIOExtensionStreamSource {
 	
 	func startStream() throws
 	{
-		guard let deviceSource = device.source as? cameraDeviceSource else
+		guard let deviceSource = parent.source as? cameraDeviceSource else
 		{
-			fatalError("Unexpected source type \(String(describing: device.source))")
+			fatalError("Unexpected source type \(String(describing: parent.source))")
 		}
 		
 		try deviceSource.startStreaming()
@@ -316,9 +291,9 @@ class cameraStreamSource: NSObject, CMIOExtensionStreamSource {
 	
 	func stopStream() throws
 	{
-		guard let deviceSource = device.source as? cameraDeviceSource else
+		guard let deviceSource = parent.source as? cameraDeviceSource else
 		{
-			fatalError("Unexpected source type \(String(describing: device.source))")
+			fatalError("Unexpected source type \(String(describing: parent.source))")
 		}
 
 		deviceSource.stopStreaming()
@@ -386,22 +361,20 @@ class cameraStreamSink: NSObject, CMIOExtensionStreamSource {
 		return true
 	}
 	
-	func startStream() throws {
-		
-		guard let deviceSource = device.source as? cameraDeviceSource else {
+	func startStream() throws
+	{
+		guard let deviceSource = device.source as? cameraDeviceSource else
+		{
 			fatalError("Unexpected source type \(String(describing: device.source))")
-		}
-		if let client = client {
-			deviceSource.startStreamingSink(client: client)
 		}
 	}
 	
-	func stopStream() throws {
-		
-		guard let deviceSource = device.source as? cameraDeviceSource else {
+	func stopStream() throws
+	{
+		guard let deviceSource = device.source as? cameraDeviceSource else
+		{
 			fatalError("Unexpected source type \(String(describing: device.source))")
 		}
-		deviceSource.stopStreamingSink()
 	}
 }
 
