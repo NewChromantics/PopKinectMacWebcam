@@ -25,12 +25,102 @@ class LogBuffer : ObservableObject
 	}
 }
 
+extension Color
+{
+	static var buttonColor : Color	{	Color(NSColor.controlColor)	}
+}
+extension ShapeStyle where Self == Color
+{
+	static var buttonColor : Color	{	Color.buttonColor	}
+}
+
+struct OutlineButtonStyle : ButtonStyle
+{
+	var backgroundColour : Color = Color.buttonColor
+	var isHovered : Bool
+	
+	
+	func makeBody(configuration: Configuration) -> some View
+	{
+		let alpha = isHovered ? 1.0 : 0.01
+		let bgColour = backgroundColour.opacity(alpha)
+		
+		configuration.label
+			.background(
+				RoundedRectangle(cornerRadius: 10)
+					.stroke(backgroundColour,lineWidth: 1)
+					//.fill(bgColour)
+					.background(bgColour)
+					.clipShape(RoundedRectangle(cornerRadius: 10))
+			)
+			//.padding(.horizontal)
+	}
+}
+
+struct CameraDeviceButton : View
+{
+	var deviceMeta : PopCameraDevice.EnumDeviceMeta
+	var active : Bool
+	var accentColour : Color
+	{
+		return active ? Color("CameraDevice_Active") : Color("CameraDevice_Inactive")
+	}
+	var foregroundColour : Color
+	{
+		return isHovered ? Color.buttonColor : accentColour
+	}
+	var backgroundColour : Color
+	{
+		return isHovered ? accentColour : Color.buttonColor
+	}
+	let maxButtonWidth : CGFloat = .infinity	//	inf means it will fill width in hstack
+	let maxButtonHeight : CGFloat = 80
+	let iconSize : CGFloat = 30//UIDevice.current.localizedModel == "iPad" ? 100 : 50
+	let iconCornerRadius : CGFloat = 10
+	var onClicked : () -> Void
+	@State var isHovered = false
+	
+	var label : String
+	{
+		return deviceMeta.Serial.replacingOccurrences(of: " ", with: "\n")
+	}
+	
+	var body: some View
+	{
+		Button(action:onClicked)
+		{
+			VStack
+			{
+				Image(systemName:"web.camera.fill")
+					.resizable()
+					.aspectRatio(contentMode: .fit)
+					.font(.system(size: iconSize))
+					.foregroundColor(foregroundColour)
+					.frame(width:iconSize, height:iconSize)
+					//.padding(.top)
+
+				Text(label)
+					//.padding(.horizontal)
+					//.frame(width: iconSize, height: iconSize)
+			}
+			//.frame here dictates the clickable area
+			.frame(maxWidth: maxButtonWidth,maxHeight: maxButtonHeight)
+			.onHover(perform: {newState in isHovered = newState })
+		}
+		.buttonStyle(OutlineButtonStyle(backgroundColour:self.backgroundColour,isHovered:self.isHovered))
+		.controlSize(.regular)
+	}
+}
+
+
 
 struct AppView : View
 {
 	var extensionManager : ExtensionManager {	return extensionManagerInstance!	}
 	@ObservedObject var cameraDebug = LogBuffer()
 	@EnvironmentObject var sinkStreamPusher : SinkStreamPusher	//	cannot use base type here
+	@EnvironmentObject var popCameraDeviceManager : PopCameraDeviceManager
+	var activeDeviceSerials = Set<String>()
 
 	init()
 	{
@@ -142,6 +232,12 @@ struct AppView : View
 		cameraDebug.Clear()
 	}
 
+	func OnClickedDeviceButton(_ serial:String)
+	{
+		//	cannot mutate self here...
+		//activeDeviceSerials.insert(serial)
+	}
+	
 	var body: some View
 	{
 		VStack(spacing: 20)
@@ -165,6 +261,23 @@ struct AppView : View
 			{
 				Text("Pusher state: \(sinkStreamPusher.threadState)")
 			}
+			
+			HStack()
+			{
+				ForEach( popCameraDeviceManager.devices, id: \.Serial)
+				{
+					deviceMeta in
+					let isActive = activeDeviceSerials.contains(deviceMeta.Serial)
+					CameraDeviceButton(deviceMeta: deviceMeta, active: isActive, onClicked:{OnClickedDeviceButton(deviceMeta.Serial)} )
+				}
+				if ( popCameraDeviceManager.devices.isEmpty )
+				{
+					let deviceMeta = PopCameraDevice.EnumDeviceMeta(Serial:"x")
+					let isActive = false
+					CameraDeviceButton(deviceMeta: deviceMeta, active: isActive, onClicked:{} )
+				}
+			}
+			.padding(.horizontal)
 			
 			ScrollView
 			{

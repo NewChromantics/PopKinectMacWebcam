@@ -9,6 +9,7 @@ var TargetCameraName = PopKinectWebcam.cameraName
 struct PopShaderCameraApp: App
 {
 	var sinkStreamPusher = SinkStreamPusher(cameraName: TargetCameraName, sinkPropertyKey: PopKinectWebcam.sinkPropertyKey, sinkPropertyValue: PopKinectWebcam.sinkPropertyValue)
+	var popCameraDeviceManager = PopCameraDeviceManager(/*serialPrefixFilter: "Freenect:"*/)
 	
 	init()
 	{
@@ -22,6 +23,7 @@ struct PopShaderCameraApp: App
 		{
 			AppView()
 				.environmentObject(sinkStreamPusher)
+				.environmentObject(popCameraDeviceManager)
 		}
 		
 	}
