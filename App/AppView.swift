@@ -120,7 +120,8 @@ struct AppView : View
 	@ObservedObject var cameraDebug = LogBuffer()
 	@EnvironmentObject var sinkStreamPusher : SinkStreamPusher	//	cannot use base type here
 	@EnvironmentObject var popCameraDeviceManager : PopCameraDeviceManager
-	var activeDeviceSerials = Set<String>()
+	@State var activeDeviceSerial : String?
+	let debugSourceSerial = "Debug"
 
 	init()
 	{
@@ -210,11 +211,6 @@ struct AppView : View
 		}
 	}
 	
-	func SetFrameSourceDebug()
-	{
-		self.sinkStreamPusher.frameSource = appDebugFrameSource
-	}
-	
 	
 	//	gr: i want to make these async...
 	func OnActivateExtension()
@@ -234,8 +230,28 @@ struct AppView : View
 
 	func OnClickedDeviceButton(_ serial:String)
 	{
-		//	cannot mutate self here...
-		//activeDeviceSerials.insert(serial)
+		if let currentActive = activeDeviceSerial
+		{
+			self.sinkStreamPusher.frameSource = nil
+			activeDeviceSerial = nil
+			//	turning current one off - dont start it again
+			if ( currentActive == serial )
+			{
+				return
+			}
+		}
+
+		//	start new frame source
+		if ( serial == debugSourceSerial )
+		{
+			self.sinkStreamPusher.frameSource = appDebugFrameSource
+		}
+		else
+		{
+			//	gr: do we need to save this??
+			self.sinkStreamPusher.frameSource = PopCameraDeviceFrameSource(deviceSerial: serial)
+		}
+		activeDeviceSerial = serial
 	}
 	
 	var body: some View
@@ -254,7 +270,6 @@ struct AppView : View
 				Button("Remove Extension",action:OnDeactivateExtension)
 				Button("List Cameras",action:ListCameraNames)
 				Button("List Kinects",action:ListKinectNames)
-				Button("Debug FrameSource",action:SetFrameSourceDebug)
 			}
 			
 			HStack()
@@ -264,17 +279,17 @@ struct AppView : View
 			
 			HStack()
 			{
+				if true //( popCameraDeviceManager.devices.isEmpty )
+				{
+					let deviceMeta = PopCameraDevice.EnumDeviceMeta(Serial:debugSourceSerial)
+					let isActive = activeDeviceSerial == deviceMeta.Serial
+					CameraDeviceButton(deviceMeta: deviceMeta, active: isActive, onClicked:{OnClickedDeviceButton(deviceMeta.Serial)} )
+				}
 				ForEach( popCameraDeviceManager.devices, id: \.Serial)
 				{
 					deviceMeta in
-					let isActive = activeDeviceSerials.contains(deviceMeta.Serial)
+					let isActive = activeDeviceSerial == deviceMeta.Serial
 					CameraDeviceButton(deviceMeta: deviceMeta, active: isActive, onClicked:{OnClickedDeviceButton(deviceMeta.Serial)} )
-				}
-				if ( popCameraDeviceManager.devices.isEmpty )
-				{
-					let deviceMeta = PopCameraDevice.EnumDeviceMeta(Serial:"x")
-					let isActive = false
-					CameraDeviceButton(deviceMeta: deviceMeta, active: isActive, onClicked:{} )
 				}
 			}
 			.padding(.horizontal)
