@@ -6,6 +6,13 @@ import Cocoa
 
 class SinkDevice : NSObject, CMIOExtensionDeviceSource
 {
+	enum PopFrameResult
+	{
+		case MoreFramesPending
+		case CanSleep
+	}
+		
+	
 	var debugFrameSource = DebugFrameSource(displayText: "Something", clearColour: NSColor.magenta.cgColor)
 	
 	var device: CMIOExtensionDevice!
@@ -15,11 +22,15 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 	var sink : SinkStream!
 	
 	var _videoDescription: CMFormatDescription!
+
+	var frameLoopTask : Task<Void,any Error>? = nil	//	if no task, we use timer
+	let expectedFrameIntervalMs = 1000/60
+
+	var isUsingTimer : Bool	{	frameLoopTask == nil	}
 	var consumeSinkTimer: DispatchSourceTimer?
 	let consumeSinkTimerQueue = DispatchQueue(label: "consumeSinkTimerQueue", qos: .userInteractive, attributes: [], autoreleaseFrequency: .workItem, target: .global(qos: .userInteractive))
 	
 	var lastError : String? = nil
-	
 	
 	init(sinkCameraName: String)
 	{
@@ -41,18 +52,32 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 		
 		let OutputUid = UUID()
 		let SinkUid = UUID()
-		//outputStream = SinkOutputStream(localizedName: "\(sinkCameraName).OutputStream", streamID: OutputUid, streamFormat: videoStreamFormat, device: device)
+		outputStream = SinkOutputStream(localizedName: "\(sinkCameraName).OutputStream", streamID: OutputUid, streamFormat: videoStreamFormat, device: device)
 		sink = SinkStream(localizedName: "\(sinkCameraName).Sink", streamID: SinkUid, streamFormat: videoStreamFormat, device: device, sinkPropertyKey: sinkPropertyKey, sinkPropertyValue: sinkPropertyValue)
 		
 		do
 		{
-			//try device.addStream(outputStream.stream)
+			//	order doesnt matter, as we identify sink stream with a sink property
+			//	if we dont have an output stream, the camera wont appear in common apps
+			try device.addStream(outputStream.stream)
 			try device.addStream(sink.stream)
 		}
 		catch let error
 		{
 			fatalError("Failed to add stream: \(error.localizedDescription)")
 		}
+		
+		//	if we dont run this, we use a timer when stream starts
+		frameLoopTask = Task
+		{
+			try await FrameLoop()
+		}
+	}
+	
+	deinit
+	{
+		frameLoopTask?.cancel()
+		frameLoopTask = nil
 	}
 	
 	var availableProperties: Set<CMIOExtensionProperty> {
@@ -80,7 +105,8 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 		// Handle settable properties here.
 	}
 	
-	func UpdateFrameAsync() async
+	//	returns true if we know there's another frame queued up
+	func UpdateFrameAsync() async -> PopFrameResult
 	{
 		//	if there are clients attached to the sink, consume from them
 		for client in self.sink.stream.streamingClients
@@ -89,8 +115,8 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 			{
 				//	this async version will crash with a nil unwrap - but not sure why/where
 				//try await self.consumeOneBufferAsync(client)
-				try self.consumeOneBuffer(client)
-				return
+				let PopResult = try self.consumeOneBuffer(client)
+				return PopResult
 			}
 			catch let err
 			{
@@ -114,6 +140,8 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 			//	display an error
 			self.lastError = "\(error.localizedDescription)"
 		}
+		//	then leave a bit of time to display the error
+		return PopFrameResult.CanSleep
 	}
 	
 	
@@ -121,30 +149,53 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 	{
 		if isStreamBeingWatched
 		{
-			try StartReadingFrames()
+			try StartConsumeTimer()
 		}
 		else
 		{
-			StopReadingFrames()
+			StopConsumeTimer()
 		}
 	}
 	
-	func StartReadingFrames() throws
+	func FrameLoop() async throws
 	{
-		//	gr: could we just always have the timer running?
-		//		just dont push if nothing recieving?
-		if ( consumeSinkTimer == nil )
+		while ( !Task.isCancelled )
 		{
-			consumeSinkTimer = DispatchSource.makeTimerSource(flags: .strict, queue: consumeSinkTimerQueue)
+			//	a sleep here will throw if the task is cancelled
+			let UpdateResult = await self.UpdateFrameAsync()
+			
+			//	gr: we shouldn't have to sleep if the func above is blocking properly
+			//		maybe change the result of UpdateFrameAsync to "Can sleep"
+			if ( UpdateResult == PopFrameResult.CanSleep )
+			{
+				//	this throws if task cancelled
+				try await Task.sleep(for:.milliseconds(expectedFrameIntervalMs))
+			}
 		}
+	}
+	
+	func StartConsumeTimer() throws
+	{
+		if ( !isUsingTimer )
+		{
+			return
+		}
+
+		if ( consumeSinkTimer != nil )
+		{
+			return
+		}
+
+		consumeSinkTimer = DispatchSource.makeTimerSource(flags: .strict, queue: consumeSinkTimerQueue)
 		guard let consumeSinkTimer else
 		{
 			throw RuntimeError("Failed to start timer")
 		}
 		
-		consumeSinkTimer.schedule(deadline: .now(), repeating: 1.0/Double(kFrameRate), leeway: .seconds(0))
+		consumeSinkTimer.schedule(deadline: .now(), repeating: .milliseconds(expectedFrameIntervalMs), leeway: .seconds(0))
 		consumeSinkTimer.setEventHandler
 		{
+			//	gr: this is async to match the rest of the code
 			Task
 			{
 				await self.UpdateFrameAsync()
@@ -154,11 +205,11 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 		consumeSinkTimer.setCancelHandler
 		{
 		}
-		
+			
 		consumeSinkTimer.resume()
 	}
 	
-	func StopReadingFrames()
+	func StopConsumeTimer()
 	{
 		if ( consumeSinkTimer != nil )
 		{
@@ -167,7 +218,7 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 		}
 	}
 	
-	func consumeOneBufferAsync(_ client: CMIOExtensionClient) async throws
+	func consumeOneBufferAsync(_ client: CMIOExtensionClient) async throws -> PopFrameResult
 	{
 		do
 		{
@@ -181,6 +232,7 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 				self.outputStream.stream.send(Sample, discontinuity: [], hostTimeInNanoseconds: UInt64(Sample.presentationTimeStamp.seconds * Double(NSEC_PER_SEC)))
 			}
 			self.sink.stream.notifyScheduledOutputChanged(output)
+			return HasMoreSamples ? PopFrameResult.MoreFramesPending : PopFrameResult.CanSleep
 		}
 		catch let Error
 		{
@@ -189,14 +241,18 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 		}
 	}
 	
-	func consumeOneBuffer(_ client: CMIOExtensionClient) throws
+	//	returns true if we know there are more frames to come
+	func consumeOneBuffer(_ client: CMIOExtensionClient) throws -> PopFrameResult
 	{
-		//	todo: change this to a future
+		//	todo: change this to a future?
+		//	gr: it seems we just dont get a callback if there's no frame?
 		var SomeError : String? = nil
+		var HasMoreFrames : Bool?
 		
 		self.sink.stream.consumeSampleBuffer(from: client)
 		{
 			sbuf, seq, discontinuity, hasMoreSampleBuffers, err in
+			HasMoreFrames = hasMoreSampleBuffers
 			if let sbuf
 			{
 				let Now = CMClockGetTime(CMClockGetHostTimeClock())
@@ -221,6 +277,14 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 		{
 			throw RuntimeError(SomeError)
 		}
+		
+		guard let HasMoreFrames else
+		{
+			//	gr: it s
+			//throw RuntimeError("ConsumeOneBuffer never got a result")
+			return PopFrameResult.CanSleep
+		}
+		return HasMoreFrames ? PopFrameResult.MoreFramesPending : PopFrameResult.CanSleep
 	}
 	
 }
