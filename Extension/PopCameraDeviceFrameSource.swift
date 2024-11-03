@@ -70,7 +70,6 @@ class PopCameraDeviceFrameSource : FrameSource
 	var warningText : String?
 	var deviceSerial : String
 	
-	var ShownWelcomeFrame : Bool = false
 	/*
 	 var clearColor : CGColor = NSColor.black.cgColor
 	 let paragraphStyle = NSMutableParagraphStyle()
@@ -130,12 +129,6 @@ class PopCameraDeviceFrameSource : FrameSource
 	
 	func PopNewFrame() async throws -> Frame
 	{
-		if !ShownWelcomeFrame
-		{
-			ShownWelcomeFrame = true
-			return try GetDebugFrame( text:"Waiting for first frame..." )
-		}
-
 		//	loop until a new frame comes
 		while ( true )
 		{
@@ -164,7 +157,8 @@ class PopCameraDeviceFrameSource : FrameSource
 				}
 			}
 				
-			try! await Task.sleep(for: .seconds(1) )
+			//	this throws if the task is cancelled
+			try await Task.sleep(for: .seconds(1) )
 			continue
 		}
 	}

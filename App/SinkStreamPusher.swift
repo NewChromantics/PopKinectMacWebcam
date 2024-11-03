@@ -273,14 +273,15 @@ final class SinkStreamPusher : NSObject, ObservableObject
 	
 	var DebugFrames = DebugFrameSource(displayText: "App",clearColour: NSColor.blue.cgColor)
 	
-	let frameSource : FrameSource
+	//	allow change at runtime
+	var frameSource : FrameSource? = nil
 	
 	var _videoDescription: CMFormatDescription!
 	var _bufferPool: CVPixelBufferPool!
 	var _bufferAuxAttributes: NSDictionary!
 
 	
-	init(cameraName:String,sinkPropertyKey:String,sinkPropertyValue:String,frameSource:FrameSource/*,log: @escaping (_ message:String)->()*/)
+	init(cameraName:String,sinkPropertyKey:String,sinkPropertyValue:String,frameSource:FrameSource?=nil/*,log: @escaping (_ message:String)->()*/)
 	{
 		//self.logFunctor = log
 		self.targetCameraName = cameraName
@@ -294,7 +295,7 @@ final class SinkStreamPusher : NSObject, ObservableObject
 		
 		Task
 		{
-			await Thread()
+			try await Thread()
 		}
 	}
 	
@@ -321,7 +322,7 @@ final class SinkStreamPusher : NSObject, ObservableObject
 	
 	
 	
-	func Thread() async
+	func Thread() async throws
 	{
 		while ( !Freed )
 		{
@@ -333,7 +334,7 @@ final class SinkStreamPusher : NSObject, ObservableObject
 				while ( !Freed )
 				{
 					try await SendNextFrameToStream(camera:Camera)
-					//try! await Task.sleep( for:.seconds(1/Double(PushFrameRate)) )
+					//try await Task.sleep( for:.seconds(1/Double(PushFrameRate)) )
 				}
 			}
 			catch let Error
@@ -342,7 +343,7 @@ final class SinkStreamPusher : NSObject, ObservableObject
 				threadStateString = "Error: \(Error.localizedDescription)"
 				
 				//	breath between errors
-				try! await Task.sleep( for:.seconds(1) )
+				try await Task.sleep( for:.seconds(1) )
 			}
 		}
 	}
@@ -397,6 +398,11 @@ final class SinkStreamPusher : NSObject, ObservableObject
 	
 	func SendNextFrameToStream(camera:CameraWithSinkInterface) async throws
 	{
+		guard let frameSource else
+		{
+			throw RuntimeError("frame source missing")
+		}
+		
 		let Frame = try await frameSource.PopNewFrame()
 		let Sample = try Frame.sampleBuffer
 		

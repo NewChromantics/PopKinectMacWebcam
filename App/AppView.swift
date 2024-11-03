@@ -5,6 +5,7 @@ import PopCameraDevice
 //	nil as it needs some callbacks, so has to be created by the app(view)
 private var extensionManagerInstance : ExtensionManager? = nil
 
+var appDebugFrameSource = DebugFrameSource(displayText: "Hello", clearColour: NSColor.green.cgColor)
 
 
 class LogBuffer : ObservableObject
@@ -28,8 +29,8 @@ class LogBuffer : ObservableObject
 struct AppView : View
 {
 	var extensionManager : ExtensionManager {	return extensionManagerInstance!	}
-	@EnvironmentObject var sinkStreamPusher : SinkStreamPusher	//	cannot use base type here
 	@ObservedObject var cameraDebug = LogBuffer()
+	@EnvironmentObject var sinkStreamPusher : SinkStreamPusher	//	cannot use base type here
 
 	init()
 	{
@@ -119,6 +120,11 @@ struct AppView : View
 		}
 	}
 	
+	func SetFrameSourceDebug()
+	{
+		self.sinkStreamPusher.frameSource = appDebugFrameSource
+	}
+	
 	
 	//	gr: i want to make these async...
 	func OnActivateExtension()
@@ -152,6 +158,7 @@ struct AppView : View
 				Button("Remove Extension",action:OnDeactivateExtension)
 				Button("List Cameras",action:ListCameraNames)
 				Button("List Kinects",action:ListKinectNames)
+				Button("Debug FrameSource",action:SetFrameSourceDebug)
 			}
 			
 			HStack()
