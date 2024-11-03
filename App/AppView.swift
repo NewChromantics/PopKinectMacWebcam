@@ -100,6 +100,7 @@ struct CameraDeviceButton : View
 					//.padding(.top)
 
 				Text(label)
+					//.foregroundColor(foregroundColour)
 					//.padding(.horizontal)
 					//.frame(width: iconSize, height: iconSize)
 			}
