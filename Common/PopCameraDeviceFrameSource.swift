@@ -1,7 +1,7 @@
 import CoreMediaIO
 import Cocoa
 import PopCameraDevice
-
+import Accelerate
 
 
 class PoolManager
@@ -192,7 +192,7 @@ class PopCameraDeviceFrameSource : FrameSource
 			//	lock pixels...
 			CVPixelBufferLockBaseAddress(pixelBuffer, [])
 
-			RenderPlanes(pixelBuffer: pixelBuffer, pixelData:pixelData, pixelDataPlanes:planes )
+			RenderPlanes(pixelBuffer: pixelBuffer, pixelData:pixelData, pixelDataMeta:planes[0] )
 			
 			//RenderFrame(pixelBuffer, text:"todo: render new frame", backgroundColour: NSColor.red.cgColor)
 			//RenderFrame(pixelBuffer,timestamp:timestamp)
@@ -256,15 +256,20 @@ class PopCameraDeviceFrameSource : FrameSource
 		return text
 	}
 	
-	func RenderPlanes(pixelBuffer:CVPixelBuffer,pixelData:Data,pixelDataPlanes:[PlaneMeta])
+	func RenderPlanes(pixelBuffer:CVPixelBuffer,pixelData:Data,pixelDataMeta:PlaneMeta)
 	{
+		let destPixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer)
 		//	just write directly for now
 		let destData = CVPixelBufferGetBaseAddress(pixelBuffer)
 		let destDataSize = CVPixelBufferGetDataSize(pixelBuffer)
 		
 		let width = CVPixelBufferGetWidth(pixelBuffer)
 		let height = CVPixelBufferGetHeight(pixelBuffer)
+		
+		//	this may be aligned...
 		let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+		let destChannels = bytesPerRow / width
+		let srcChannels = Int(pixelDataMeta.Channels)
 		
 		pixelData.withUnsafeBytes
 		{
@@ -273,10 +278,30 @@ class PopCameraDeviceFrameSource : FrameSource
 			in
 			//let srcPtr = UnsafeRawPointer(srcBytes)
 			let srcPtr = srcBytes.baseAddress!
+			let src8s = srcBytes.bindMemory(to: UInt8.self)
+			let dest8s = destData!.bindMemory(to: UInt8.self, capacity: destDataSize)
 			let WriteCount = min( srcBytes.count, destDataSize )
 			//let destPtr = UnsafeMutableRawBufferPointer(rebasing: destData[start ..< end])
-			destData?.copyMemory(from: srcPtr, byteCount: WriteCount)
+			//destData?.copyMemory(from: srcPtr, byteCount: WriteCount)
+			for i in 0...(width*height)-1
+			{
+				let s = (i*srcChannels)
+				if ( s >= pixelDataMeta.DataSize )
+				{
+					break
+				}
+				let r = src8s[s+0]
+				let g = src8s[s+1]
+				let b = src8s[s+2]
+				let a = UInt8(255)
+				//	bgra
+				dest8s[(i*destChannels)+0] = b
+				dest8s[(i*destChannels)+1] = g
+				dest8s[(i*destChannels)+2] = r
+				dest8s[(i*destChannels)+3] = a
+			}
 		}
+		 
 	}
 	
 	func RenderFrame(_ pixelBuffer:CVPixelBuffer,text:String,backgroundColour:CGColor)
