@@ -23,12 +23,15 @@ class CameraWithSinkInterface
 
 	var startedDeviceAndStream : (CMIOObjectID,CMIOStreamID)? = nil
 	
-	var SinkPropertyKey : String
+	//	we identify the sink stream with a matching key/value
+	var sinkPropertyKey : String
+	var sinkPropertyValue : String
 
 	
-	init(device: AVCaptureDevice, SinkPropertyKey:String) throws
+	init(device: AVCaptureDevice, sinkPropertyKey:String, sinkPropertyValue:String) throws
 	{
-		self.SinkPropertyKey = SinkPropertyKey
+		self.sinkPropertyKey = sinkPropertyKey
+		self.sinkPropertyValue = sinkPropertyValue
 		self.device = device
 		
 		//	find the sink stream id
@@ -129,17 +132,23 @@ class CameraWithSinkInterface
 		//	find stream with our sink property
 		for StreamId in StreamIds
 		{
-			guard let SinkValue = getProperty(streamId: StreamId, key: SinkPropertyKey ) else
+			guard let SinkValue = getProperty(streamId: StreamId, key: sinkPropertyKey ) else
 			{
 				continue
 			}
 			
+			if ( SinkValue != sinkPropertyValue )
+			{
+				print("Sink property(\(sinkPropertyKey) found with mismatched value: \(SinkValue) expected \(sinkPropertyValue)")
+				continue
+			}
+			
 			//	assume value is good if key present
-			print("Sink property found: \(SinkValue)")
+			//print("Sink property found: \(SinkValue)")
 			return StreamId
 		}
 		
-		throw RuntimeError("No streamid with \(SinkPropertyKey) key")
+		throw RuntimeError("No stream found with property \(sinkPropertyKey)=\(sinkPropertyValue)")
 	}
 	
 	func BindToSinkQueue(sinkStreamId:CMIOStreamID) throws
@@ -257,8 +266,9 @@ final class SinkStreamPusher : NSObject, ObservableObject
 	
 	//	variables to help us find what camera & stream we want to write to
 	var targetCameraName : String
-	var sinkPropertyName : String
-	
+	var sinkPropertyKey : String
+	var sinkPropertyValue : String
+
 	var Freed = false
 	
 	var DebugFrames = DebugFrameSource(displayText: "App",clearColour: NSColor.blue.cgColor)
@@ -270,12 +280,12 @@ final class SinkStreamPusher : NSObject, ObservableObject
 	var _bufferAuxAttributes: NSDictionary!
 
 	
-	init(cameraName:String,sinkPropertyName:String,frameSource:FrameSource/*,log: @escaping (_ message:String)->()*/)
+	init(cameraName:String,sinkPropertyKey:String,sinkPropertyValue:String,frameSource:FrameSource/*,log: @escaping (_ message:String)->()*/)
 	{
-		print("Allocating new CameraController")
 		//self.logFunctor = log
 		self.targetCameraName = cameraName
-		self.sinkPropertyName = sinkPropertyName
+		self.sinkPropertyKey = sinkPropertyKey
+		self.sinkPropertyValue = sinkPropertyValue
 		self.frameSource = frameSource
 		
 		super.init()
@@ -382,7 +392,7 @@ final class SinkStreamPusher : NSObject, ObservableObject
 			throw RuntimeError("No camera named \(targetCameraName)")
 		}
 
-		return try CameraWithSinkInterface(device:Device,SinkPropertyKey: sinkPropertyName)
+		return try CameraWithSinkInterface(device:Device,sinkPropertyKey: sinkPropertyKey,sinkPropertyValue:sinkPropertyValue)
 	}
 	
 	func SendNextFrameToStream(camera:CameraWithSinkInterface) async throws

@@ -9,7 +9,7 @@ var appFrameSource = DebugFrameSource(displayText: "Hello", clearColour: NSColor
 @main
 struct PopShaderCameraApp: App
 {
-	var sinkStreamPusher = SinkStreamPusher(cameraName: TargetCameraName, sinkPropertyName: PopKinectWebcam.sinkPropertyName, frameSource: appFrameSource)
+	var sinkStreamPusher = SinkStreamPusher(cameraName: TargetCameraName, sinkPropertyKey: PopKinectWebcam.sinkPropertyKey, sinkPropertyValue: PopKinectWebcam.sinkPropertyValue, frameSource: appFrameSource)
 	
 	init()
 	{

@@ -23,7 +23,8 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 	
 	init(sinkCameraName: String)
 	{
-		let SinkPropertyKey = PopKinectWebcam.sinkPropertyName
+		let sinkPropertyKey = PopKinectWebcam.sinkPropertyKey
+		let sinkPropertyValue = PopKinectWebcam.sinkPropertyValue
 		debugFrameSource.displayText = sinkCameraName
 		
 		super.init()
@@ -40,12 +41,12 @@ class SinkDevice : NSObject, CMIOExtensionDeviceSource
 		
 		let OutputUid = UUID()
 		let SinkUid = UUID()
-		outputStream = SinkOutputStream(localizedName: "\(sinkCameraName).OutputStream", streamID: OutputUid, streamFormat: videoStreamFormat, device: device)
-		sink = SinkStream(localizedName: "\(sinkCameraName).Sink", streamID: SinkUid, streamFormat: videoStreamFormat, device: device, sinkPropertyKey: SinkPropertyKey)
+		//outputStream = SinkOutputStream(localizedName: "\(sinkCameraName).OutputStream", streamID: OutputUid, streamFormat: videoStreamFormat, device: device)
+		sink = SinkStream(localizedName: "\(sinkCameraName).Sink", streamID: SinkUid, streamFormat: videoStreamFormat, device: device, sinkPropertyKey: sinkPropertyKey, sinkPropertyValue: sinkPropertyValue)
 		
 		do
 		{
-			try device.addStream(outputStream.stream)
+			//try device.addStream(outputStream.stream)
 			try device.addStream(sink.stream)
 		}
 		catch let error

@@ -107,11 +107,12 @@ class SinkStream: NSObject, CMIOExtensionStreamSource
 	
 	var sinkPropertyKey : String
 	let sinkProperty : CMIOExtensionProperty
-	var sinkPropertyValue = "Hello"
+	var sinkPropertyValue : String
 	
-	init(localizedName: String, streamID: UUID, streamFormat: CMIOExtensionStreamFormat, device: CMIOExtensionDevice, sinkPropertyKey:String)
+	init(localizedName: String, streamID: UUID, streamFormat: CMIOExtensionStreamFormat, device: CMIOExtensionDevice, sinkPropertyKey:String, sinkPropertyValue:String)
 	{
 		self.sinkPropertyKey = sinkPropertyKey
+		self.sinkPropertyValue = sinkPropertyValue
 		self.sinkProperty = CMIOExtensionProperty(rawValue: "4cc_\(sinkPropertyKey)_glob_0000")
 
 		self.device = device
