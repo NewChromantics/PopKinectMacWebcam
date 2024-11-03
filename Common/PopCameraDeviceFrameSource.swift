@@ -8,7 +8,8 @@ class PoolManager
 {
 	var pool: CVPixelBufferPool!
 	var poolAttributes : NSDictionary!
-	private var format : PopCameraDevice.StreamImageFormat
+	let maxPoolSize = 10
+	var format : PopCameraDevice.StreamImageFormat
 
 	init(format:PopCameraDevice.StreamImageFormat)
 	{
@@ -23,7 +24,7 @@ class PoolManager
 			kCVPixelBufferIOSurfacePropertiesKey: [:]
 		]
 		CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, pixelBufferAttributes, &pool )
-		poolAttributes = [kCVPixelBufferPoolAllocationThresholdKey: 5]
+		poolAttributes = [kCVPixelBufferPoolAllocationThresholdKey: maxPoolSize]
 	}
 	
 	func isMatchingFormat(_ matchFormat:PopCameraDevice.StreamImageFormat) -> Bool
@@ -50,67 +51,18 @@ class PopCameraDeviceFrameSource : FrameSource
 	//	device, we will re-create this on error and try to keep it alive
 	var deviceInstance : PopCameraDeviceInstance? = nil
 	
+	//	current pool, which may get reallocated as output sizes change
 	var bufferPool : PoolManager?
-	/*
-	 var bufferPool: CVPixelBufferPool!
-	 var bufferAuxAttributes: NSDictionary!
-	 let width : Int32 = 640
-	 let height : Int32 = 480
-	 let frameRate = 60
-	 let pixelFormat = kCVPixelFormatType_32BGRA
-	 var videoFormat : CMFormatDescription!
-	 var maxFrameDuration : CMTime
-	 {
-	 CMTime(value: 1, timescale: Int32(60))
-	 }
-	 */
 	
 	//	render contents
 	//	externally set text
 	var warningText : String?
 	var deviceSerial : String
-	
-	/*
-	 var clearColor : CGColor = NSColor.black.cgColor
-	 let paragraphStyle = NSMutableParagraphStyle()
-	 var textFontAttributes: [NSAttributedString.Key : Any]
-	 let textColor = NSColor.white
-	 let fontSize = 24.0
-	 var textFont : NSFont { NSFont.systemFont(ofSize: fontSize)}
-	 */
+
 	
 	init(deviceSerial:String)
 	{
-		//self.clearColor = NSColor.cyan.cgColor
 		self.deviceSerial = deviceSerial
-		
-		/*
-		 //let dims = CMVideoDimensions(width: 1920, height: 1080)
-		 let dims = CMVideoDimensions(width: self.width, height: self.height)
-		 CMVideoFormatDescriptionCreate(
-		 allocator: kCFAllocatorDefault,
-		 codecType: pixelFormat,
-		 //codecType: kCVPixelFormatType_32ARGB/*kCVPixelFormatType_32BGRA*/,
-		 width: self.width, height: self.height, extensions: nil, formatDescriptionOut: &videoFormat)
-		 
-		 let pixelBufferAttributes: NSDictionary = [
-		 kCVPixelBufferWidthKey: dims.width,
-		 kCVPixelBufferHeightKey: dims.height,
-		 kCVPixelBufferPixelFormatTypeKey: videoFormat.mediaSubType,
-		 kCVPixelBufferIOSurfacePropertiesKey: [:]
-		 ]
-		 CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, pixelBufferAttributes, &bufferPool )
-		 bufferAuxAttributes = [kCVPixelBufferPoolAllocationThresholdKey: 5]
-		 
-		 paragraphStyle.alignment = NSTextAlignment.center
-		 textFontAttributes = [:]
-		 
-		 textFontAttributes = [
-		 NSAttributedString.Key.font: textFont,
-		 NSAttributedString.Key.foregroundColor: textColor,
-		 NSAttributedString.Key.paragraphStyle: paragraphStyle
-		 ]
-		 */
 	}
 	
 	deinit
@@ -142,6 +94,7 @@ class PopCameraDeviceFrameSource : FrameSource
 			catch let Error
 			{
 				return try GetDebugFrame( text:Error.localizedDescription )
+				throw Error
 			}
 			
 			//	if there's a warning, show it
@@ -216,16 +169,21 @@ class PopCameraDeviceFrameSource : FrameSource
 			throw RuntimeError( error )
 		}
 		
-		guard let Planes = NextFrameMeta.Planes else
+		guard let planes = NextFrameMeta.Planes else
 		{
 			throw RuntimeError("Frame missing planes")
 		}
 		
 		//	do we need to resize our data
-		guard let pixelBuffer = try AllocateBuffer(planes:Planes)
+		guard let pixelBuffer = try AllocateBuffer(planes:planes)
 				else
 		{
 			throw RuntimeError("Failed to allocate buffer for new frame")
+		}
+		
+		guard let pixelData = NextFrame.PixelData else
+		{
+			throw RuntimeError("Popped frame but no pixels")
 		}
 		
 		//	write into the buffer
@@ -234,7 +192,8 @@ class PopCameraDeviceFrameSource : FrameSource
 			//	lock pixels...
 			CVPixelBufferLockBaseAddress(pixelBuffer, [])
 
-			//	copy frame pixels in
+			RenderPlanes(pixelBuffer: pixelBuffer, pixelData:pixelData, pixelDataPlanes:planes )
+			
 			//RenderFrame(pixelBuffer, text:"todo: render new frame", backgroundColour: NSColor.red.cgColor)
 			//RenderFrame(pixelBuffer,timestamp:timestamp)
 			
@@ -249,7 +208,7 @@ class PopCameraDeviceFrameSource : FrameSource
 		//	written to buffer, now return it
 		//	todo: get tmestamp from meta
 		let timestamp = CMClockGetTime(CMClockGetHostTimeClock())
-		let pixelFormat = try Planes[0].GetStreamImageFormat().GetFormatDescripton()
+		let pixelFormat = try planes[0].GetStreamImageFormat().GetFormatDescripton()
 		let frame = Frame(pixels: pixelBuffer, format: pixelFormat, time: timestamp)
 		return frame
 	}
@@ -297,6 +256,28 @@ class PopCameraDeviceFrameSource : FrameSource
 		return text
 	}
 	
+	func RenderPlanes(pixelBuffer:CVPixelBuffer,pixelData:Data,pixelDataPlanes:[PlaneMeta])
+	{
+		//	just write directly for now
+		let destData = CVPixelBufferGetBaseAddress(pixelBuffer)
+		let destDataSize = CVPixelBufferGetDataSize(pixelBuffer)
+		
+		let width = CVPixelBufferGetWidth(pixelBuffer)
+		let height = CVPixelBufferGetHeight(pixelBuffer)
+		let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+		
+		pixelData.withUnsafeBytes
+		{
+			//(srcBytes: UnsafePointer<UInt8>)
+			(srcBytes:UnsafeRawBufferPointer)
+			in
+			//let srcPtr = UnsafeRawPointer(srcBytes)
+			let srcPtr = srcBytes.baseAddress!
+			let WriteCount = min( srcBytes.count, destDataSize )
+			//let destPtr = UnsafeMutableRawBufferPointer(rebasing: destData[start ..< end])
+			destData?.copyMemory(from: srcPtr, byteCount: WriteCount)
+		}
+	}
 	
 	func RenderFrame(_ pixelBuffer:CVPixelBuffer,text:String,backgroundColour:CGColor)
 	{
