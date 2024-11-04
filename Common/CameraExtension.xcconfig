@@ -8,8 +8,5 @@ PRODUCT_NAME = $(PRODUCT_BUNDLE_IDENTIFIER)
 //INFOPLIST_KEY_CFBundleDisplayName = $(TARGET_NAME)
 INFOPLIST_KEY_CFBundleDisplayName = PopKinectWebcam Camera Extension
 
-//	not sure if we need this in the extension?
-INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO
-
 //	gr: not sure this is used, maybe just for app
 INFOPLIST_KEY_NSSystemExtensionUsageDescription = System extension in plist

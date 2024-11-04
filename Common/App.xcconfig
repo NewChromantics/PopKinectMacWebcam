@@ -1,6 +1,12 @@
 #include "./Version.xcconfig"
 
-INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO
+//	gr: this doesn't work
+//	https://stackoverflow.com/questions/70260181/xcode-how-to-add-key-into-generated-info-plist-file-or-merge-generated-and-exi
+//INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO
 
 //	gr: double check where this is used (surely at installation?)
 INFOPLIST_KEY_NSSystemExtensionUsageDescription = This app installs a camera extension to allow use as a webcam
+
+INFOPLIST_KEY_NSHumanReadableCopyright = NewChromantics 2024
+
+INFOPLIST_KEY_CFBundleDisplayName = Kinect Webcam
