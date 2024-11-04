@@ -38,7 +38,7 @@ class KinectCameraProviderSource : NSObject, CMIOExtensionProviderSource
 		
 		Task
 		{
-			await WatchForNewDevicesThread()
+			//await WatchForNewDevicesThread()
 		}
 		
 	}
