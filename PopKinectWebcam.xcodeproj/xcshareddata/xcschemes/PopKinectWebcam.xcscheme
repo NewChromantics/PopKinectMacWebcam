@@ -21,6 +21,20 @@
                ReferencedContainer = "container:PopKinectWebcam.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "WebGPU"
+               BuildableName = "WebGPU"
+               BlueprintName = "WebGPU"
+               ReferencedContainer = "container:../SwiftWebGpu">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

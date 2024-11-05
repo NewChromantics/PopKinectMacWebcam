@@ -16,16 +16,24 @@
 		BF23182A2CD7AB5300A94ABA /* PopCameraDeviceFrameSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFDA39B22CC67666003C8172 /* PopCameraDeviceFrameSource.swift */; };
 		BF23182B2CD7AB6A00A94ABA /* PopCameraDeviceFrameSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFDA39B22CC67666003C8172 /* PopCameraDeviceFrameSource.swift */; };
 		BF23182D2CD7E19D00A94ABA /* PopCameraDeviceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF23182C2CD7E19D00A94ABA /* PopCameraDeviceManager.swift */; };
+		BF3BBA612CDAB6B6003A0739 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF3BBA602CDAB6B6003A0739 /* CameraPreview.swift */; };
 		BF76118E2CBC0AAB00EB4BE1 /* FrameSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */; };
 		BF7611922CBD69AD00EB4BE1 /* KinectDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7611912CBD69AD00EB4BE1 /* KinectDevice.swift */; };
 		BF7CEF7E2CB6CB9D00A20F77 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
 		BF7CEF832CB7DA4C00A20F77 /* ExtensionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF822CB7DA4C00A20F77 /* ExtensionManager.swift */; };
 		BF7CEF852CB7DB7900A20F77 /* AppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF842CB7DB7900A20F77 /* AppView.swift */; };
 		BF8474CE2CB7F97400016574 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
+		BFC021822CDA5349009D6E66 /* DawnNative in Frameworks */ = {isa = PBXBuildFile; productRef = BFC021812CDA5349009D6E66 /* DawnNative */; };
+		BFC021842CDA5349009D6E66 /* WebGPU in Frameworks */ = {isa = PBXBuildFile; productRef = BFC021832CDA5349009D6E66 /* WebGPU */; };
+		BFC021862CDA5349009D6E66 /* generate-webgpu in Frameworks */ = {isa = PBXBuildFile; productRef = BFC021852CDA5349009D6E66 /* generate-webgpu */; };
+		BFC0219C2CDA56ED009D6E66 /* DawnNative in Frameworks */ = {isa = PBXBuildFile; productRef = BFC0219B2CDA56ED009D6E66 /* DawnNative */; };
+		BFC0219E2CDA56ED009D6E66 /* WebGPU in Frameworks */ = {isa = PBXBuildFile; productRef = BFC0219D2CDA56ED009D6E66 /* WebGPU */; };
+		BFC021A02CDA56ED009D6E66 /* generate-webgpu in Frameworks */ = {isa = PBXBuildFile; productRef = BFC0219F2CDA56ED009D6E66 /* generate-webgpu */; };
 		BFDA39AA2CC57F58003C8172 /* PopCameraDevice in Frameworks */ = {isa = PBXBuildFile; productRef = BFDA39A92CC57F58003C8172 /* PopCameraDevice */; };
 		BFDA39AC2CC5A088003C8172 /* PopCameraDevice in Frameworks */ = {isa = PBXBuildFile; productRef = BFDA39AB2CC5A088003C8172 /* PopCameraDevice */; };
 		BFDA39AF2CC5A6CA003C8172 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F990A86C286F664500159819 /* Assets.xcassets */; };
 		BFDA39B12CC5B620003C8172 /* KinectStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFDA39B02CC5B620003C8172 /* KinectStream.swift */; };
+		BFE3C8AD2CDA5B7D0093294F /* generate-webgpu in Frameworks */ = {isa = PBXBuildFile; productRef = BFE3C8AC2CDA5B7D0093294F /* generate-webgpu */; };
 		F990A869286F663F00159819 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A868286F663F00159819 /* AppDelegate.swift */; };
 		F990A86D286F664500159819 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F990A86C286F664500159819 /* Assets.xcassets */; };
 		F990A87E286F666500159819 /* KinectCameraProviderSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = F990A87D286F666500159819 /* KinectCameraProviderSource.swift */; };
@@ -74,6 +82,7 @@
 		BF2318272CD690EB00A94ABA /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		BF23182C2CD7E19D00A94ABA /* PopCameraDeviceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopCameraDeviceManager.swift; sourceTree = "<group>"; };
 		BF3311E42CB6A39400D3936A /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
+		BF3BBA602CDAB6B6003A0739 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
 		BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSource.swift; sourceTree = "<group>"; };
 		BF76118F2CBD235000EB4BE1 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
 		BF7611912CBD69AD00EB4BE1 /* KinectDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinectDevice.swift; sourceTree = "<group>"; };
@@ -106,6 +115,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				BFDA39AA2CC57F58003C8172 /* PopCameraDevice in Frameworks */,
+				BFE3C8AD2CDA5B7D0093294F /* generate-webgpu in Frameworks */,
+				BFC0219C2CDA56ED009D6E66 /* DawnNative in Frameworks */,
+				BFC0219E2CDA56ED009D6E66 /* WebGPU in Frameworks */,
+				BFC021862CDA5349009D6E66 /* generate-webgpu in Frameworks */,
+				BFC021822CDA5349009D6E66 /* DawnNative in Frameworks */,
+				BFC021842CDA5349009D6E66 /* WebGPU in Frameworks */,
+				BFC021A02CDA56ED009D6E66 /* generate-webgpu in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -174,13 +190,14 @@
 		F990A867286F663F00159819 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				BF2317F32CD505CD00A94ABA /* SinkStreamPusher.swift */,
-				BF23182C2CD7E19D00A94ABA /* PopCameraDeviceManager.swift */,
-				BF7CEF842CB7DB7900A20F77 /* AppView.swift */,
-				F990A868286F663F00159819 /* AppDelegate.swift */,
-				BF7CEF822CB7DA4C00A20F77 /* ExtensionManager.swift */,
-				F990A86C286F664500159819 /* Assets.xcassets */,
 				F990A871286F664500159819 /* App.entitlements */,
+				F990A868286F663F00159819 /* AppDelegate.swift */,
+				BF7CEF842CB7DB7900A20F77 /* AppView.swift */,
+				F990A86C286F664500159819 /* Assets.xcassets */,
+				BF3BBA602CDAB6B6003A0739 /* CameraPreview.swift */,
+				BF7CEF822CB7DA4C00A20F77 /* ExtensionManager.swift */,
+				BF23182C2CD7E19D00A94ABA /* PopCameraDeviceManager.swift */,
+				BF2317F32CD505CD00A94ABA /* SinkStreamPusher.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -216,6 +233,9 @@
 			buildRules = (
 			);
 			dependencies = (
+				BFE3C8AB2CDA5B590093294F /* PBXTargetDependency */,
+				BFE3C8A92CDA5B560093294F /* PBXTargetDependency */,
+				BFE3C8A72CDA5B2D0093294F /* PBXTargetDependency */,
 				F990A884286F666500159819 /* PBXTargetDependency */,
 			);
 			name = PopKinectWebcam;
@@ -270,6 +290,7 @@
 			mainGroup = F990A85C286F663F00159819;
 			packageReferences = (
 				BFDA39A62CC57BF5003C8172 /* XCLocalSwiftPackageReference "../PopCameraDevice.SwiftPackage" */,
+				BFC0219A2CDA56ED009D6E66 /* XCLocalSwiftPackageReference "../SwiftWebGpu" */,
 			);
 			productRefGroup = F990A866286F663F00159819 /* Products */;
 			projectDirPath = "";
@@ -310,6 +331,7 @@
 				BF7CEF832CB7DA4C00A20F77 /* ExtensionManager.swift in Sources */,
 				BF2318292CD690EB00A94ABA /* Config.swift in Sources */,
 				BF23182D2CD7E19D00A94ABA /* PopCameraDeviceManager.swift in Sources */,
+				BF3BBA612CDAB6B6003A0739 /* CameraPreview.swift in Sources */,
 				BF7CEF852CB7DB7900A20F77 /* AppView.swift in Sources */,
 				BF2317F52CD5579F00A94ABA /* FrameSource.swift in Sources */,
 				BF23182A2CD7AB5300A94ABA /* PopCameraDeviceFrameSource.swift in Sources */,
@@ -337,6 +359,18 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		BFE3C8A72CDA5B2D0093294F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = BFE3C8A62CDA5B2D0093294F /* generate-webgpu */;
+		};
+		BFE3C8A92CDA5B560093294F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = BFE3C8A82CDA5B560093294F /* WebGPU */;
+		};
+		BFE3C8AB2CDA5B590093294F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = BFE3C8AA2CDA5B590093294F /* DawnNative */;
+		};
 		F990A884286F666500159819 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = F990A87A286F666500159819 /* CameraExtension */;
@@ -465,6 +499,7 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
@@ -487,6 +522,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopKinectWebcam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -501,6 +537,7 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
@@ -523,6 +560,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newchromantics.PopKinectWebcam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -626,13 +664,55 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		BFC0219A2CDA56ED009D6E66 /* XCLocalSwiftPackageReference "../SwiftWebGpu" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../SwiftWebGpu;
+		};
 		BFDA39A62CC57BF5003C8172 /* XCLocalSwiftPackageReference "../PopCameraDevice.SwiftPackage" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../PopCameraDevice.SwiftPackage;
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		BFC021802CDA5349009D6E66 /* XCRemoteSwiftPackageReference "swift-webgpu" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/henrybetts/swift-webgpu.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		BFC021812CDA5349009D6E66 /* DawnNative */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFC021802CDA5349009D6E66 /* XCRemoteSwiftPackageReference "swift-webgpu" */;
+			productName = DawnNative;
+		};
+		BFC021832CDA5349009D6E66 /* WebGPU */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFC021802CDA5349009D6E66 /* XCRemoteSwiftPackageReference "swift-webgpu" */;
+			productName = WebGPU;
+		};
+		BFC021852CDA5349009D6E66 /* generate-webgpu */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFC021802CDA5349009D6E66 /* XCRemoteSwiftPackageReference "swift-webgpu" */;
+			productName = "generate-webgpu";
+		};
+		BFC0219B2CDA56ED009D6E66 /* DawnNative */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DawnNative;
+		};
+		BFC0219D2CDA56ED009D6E66 /* WebGPU */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WebGPU;
+		};
+		BFC0219F2CDA56ED009D6E66 /* generate-webgpu */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = "generate-webgpu";
+		};
 		BFDA39A92CC57F58003C8172 /* PopCameraDevice */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BFDA39A62CC57BF5003C8172 /* XCLocalSwiftPackageReference "../PopCameraDevice.SwiftPackage" */;
@@ -642,6 +722,26 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BFDA39A62CC57BF5003C8172 /* XCLocalSwiftPackageReference "../PopCameraDevice.SwiftPackage" */;
 			productName = PopCameraDevice;
+		};
+		BFE3C8A62CDA5B2D0093294F /* generate-webgpu */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFC0219A2CDA56ED009D6E66 /* XCLocalSwiftPackageReference "../SwiftWebGpu" */;
+			productName = "generate-webgpu";
+		};
+		BFE3C8A82CDA5B560093294F /* WebGPU */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFC0219A2CDA56ED009D6E66 /* XCLocalSwiftPackageReference "../SwiftWebGpu" */;
+			productName = WebGPU;
+		};
+		BFE3C8AA2CDA5B590093294F /* DawnNative */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFC0219A2CDA56ED009D6E66 /* XCLocalSwiftPackageReference "../SwiftWebGpu" */;
+			productName = DawnNative;
+		};
+		BFE3C8AC2CDA5B7D0093294F /* generate-webgpu */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFC0219A2CDA56ED009D6E66 /* XCLocalSwiftPackageReference "../SwiftWebGpu" */;
+			productName = "generate-webgpu";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

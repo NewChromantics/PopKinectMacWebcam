@@ -1,11 +1,20 @@
 import SwiftUI
 import AVFoundation
 import PopCameraDevice
+import WebGPU
+
+//	webgpu has a .Color too, make life simpler
+typealias Color = SwiftUI.Color
+
+
+let inst = createInstance()
+
 
 //	nil as it needs some callbacks, so has to be created by the app(view)
 private var extensionManagerInstance : ExtensionManager? = nil
 
 var appDebugFrameSource = DebugFrameSource(displayText: "Hello", clearColour: NSColor.green.cgColor)
+
 
 
 class LogBuffer : ObservableObject
@@ -294,6 +303,8 @@ struct AppView : View
 				}
 			}
 			.padding(.horizontal)
+			
+			CameraPreview()
 			
 			ScrollView
 			{
