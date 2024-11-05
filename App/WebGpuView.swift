@@ -15,7 +15,7 @@ typealias UIViewRepresentable = NSViewRepresentable
 #endif
 
 
-//	wrapper on top of an animation+state (rather than using a function pointer)
+//	callback from low-level (metal)view when its time to render
 protocol ContentRenderer
 {
 	func Render(contentRect:CGRect,layer:CAMetalLayer)
@@ -225,12 +225,6 @@ class RenderView : UIView
 		
 		//vsync = VSyncer(Callback: Render)
 	}
-	
-	
-	func startRenderLoop()
-	{
-	}
-	
 	
 	
 #if os(macOS)
