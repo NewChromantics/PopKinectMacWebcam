@@ -3,7 +3,7 @@ import WebGPU
 import MetalKit
 
 
-let webGpuRenderer = WebGpuRenderer()
+let webGpuRenderer = WebGPU.WebGpuRenderer()
 
 
 
@@ -158,18 +158,12 @@ class CameraPreviewInstance
 let cameraPreviewInstance = CameraPreviewInstance()
 
 
-public struct CameraPreview : View, ContentRenderer
+struct CameraPreview : View, WebGPU.ContentRenderer
 {
-	public init()
+	var body : some View
 	{
-	}
-	
-	
-	public var body : some View
-	{
-		RenderViewRep(contentRenderer: self)
+		WebGpuView(contentRenderer: self)
 			.frame(maxWidth: .infinity, maxHeight: .infinity)
-			.background(.red)
 	}
 	
 
