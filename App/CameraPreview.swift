@@ -7,16 +7,17 @@ let webGpuRenderer = WebGPU.WebGpuRenderer()
 
 
 
-struct Vertex {
-	var position: (Float, Float, Float)
-	var color: (Float, Float, Float)
+struct Vertex2
+{
+	//	gr: 2D pos turns into uv & 3d view pos
+	var position: (Float, Float)
 	
 	
 	static var layout : VertexBufferLayout
 	{
 		return VertexBufferLayout(
-			arrayStride: UInt64(MemoryLayout<Vertex>.stride),
-			attributes: Vertex.attributes
+			arrayStride: UInt64(MemoryLayout<Vertex2>.stride),
+			attributes: self.attributes
 			)
 	}
 	
@@ -24,18 +25,25 @@ struct Vertex {
 	{
 		return [
 			VertexAttribute (
-				format: .float32x3,
-				offset: UInt64(MemoryLayout.offset(of: \Vertex.position)!),
+				format: .float32x2,
+				offset: UInt64(MemoryLayout.offset(of: \Vertex2.position)!),
 				shaderLocation: 0
-			),
-			VertexAttribute (
-				format: .float32x3,
-				offset: UInt64(MemoryLayout.offset(of: \Vertex.color)!),
-				shaderLocation: 1
 			)
 			]
 	}
 }
+
+let QuadVertexes =
+[
+	Vertex2(position: (0, 0) ),
+	Vertex2(position: (1, 0) ),
+	Vertex2(position: (1, 1) ),
+
+	Vertex2(position: (1, 1) ),
+	Vertex2(position: (0, 1) ),
+	Vertex2(position: (0, 0) ),
+
+]
 
 
 
@@ -62,27 +70,29 @@ class CameraPreviewInstance
 		let vertexShaderSource = """
 		struct VertexOut {
 			@builtin(position) position : vec4<f32>,
-			@location(0) color: vec4<f32>
+			@location(0) uv : vec2<f32>
 		};
 
 		@vertex fn main(
-			@location(0) position : vec4<f32>,
-			@location(1) color : vec4<f32>
+			@location(0) position : vec2<f32>
 			) -> VertexOut 
 		{
 			var output : VertexOut;
-			output.position = position;
-			output.color = color;
+			var viewMin = vec2(-1.0,-1.0);	//	gr: two integers, causes rendering to fail...
+			var viewMax = vec2(1.0,1.0);
+			var viewPos = mix( viewMin, viewMax, position );
+			output.position = vec4( viewPos, 0, 1 );
+			output.uv = position;
 			return output;
 		}
 		"""
 		
 		let fragmentShaderSource = """
 		@fragment fn main(
-			@location(0) color : vec4<f32>
+			@location(0) uv : vec2<f32>
 		) -> @location(0) vec4<f32> 
 		{
-			return color;
+			return vec4( uv, 0, 1 );
 		}
 		"""
 		
@@ -100,7 +110,7 @@ class CameraPreviewInstance
 		let vertexDescription = VertexState(
 			module: vertexShader,
 			entryPoint: "main",
-			buffers: [Vertex.layout]
+			buffers: [Vertex2.layout]
 		)
 		
 		let pipelineDescription = RenderPipelineDescriptor(
@@ -113,14 +123,8 @@ class CameraPreviewInstance
 				]))
 		self.pipeline = device.createRenderPipeline(descriptor:pipelineDescription)
 		
-		let vertexData = [
-			Vertex(position: (0, 0.5, 0), color: (1, 0, 0)),
-			Vertex(position: (-0.5, -0.5, 0), color: (0, 1, 0)),
-			Vertex(position: (0.5, -0.5, 0), color: (0, 0, 1))
-		]
-		
-		self.vertexCount = UInt32(vertexData.count)
-		self.vertexBuffer = vertexData.withUnsafeBytes { vertexBytes -> Buffer in
+		self.vertexCount = UInt32(QuadVertexes.count)
+		self.vertexBuffer = QuadVertexes.withUnsafeBytes { vertexBytes -> Buffer in
 			let vertexBuffer = device.createBuffer(descriptor: BufferDescriptor(
 				usage: .vertex,
 				size: UInt64(vertexBytes.count),
