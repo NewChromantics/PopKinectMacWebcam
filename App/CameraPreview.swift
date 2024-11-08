@@ -125,8 +125,8 @@ class CameraPreviewInstance
 			) -> VertexOut 
 		{
 			var output : VertexOut;
-			var viewMin = vec2(-1.0,-1.0);	//	gr: two integers, causes rendering to fail...
-			var viewMax = vec2(1.0,1.0);
+			var viewMin = vec2(-1.0,1.0);	//	gr: two integers, causes rendering to fail...
+			var viewMax = vec2(1.0,-1.0);
 			var viewPos = mix( viewMin, viewMax, position );
 			output.position = vec4( viewPos, 0, 1 );
 			output.uv = position;
