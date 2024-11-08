@@ -75,20 +75,24 @@ class CameraPreviewInstance
 	{
 		//	gr: out seems to need to be a byte-multiple 256
 		//	https://developer.mozilla.org/en-US/docs/Web/API/GPUCommandEncoder/copyBufferToTexture
-		let outputMeta = TextureMeta(width: 64, height: 10, imageFormat: .bgra8)
+		let outputMeta = TextureMeta(width: 64, height: 1, imageFormat: .bgra8)
 
 		//	gr: convertor not actually using rgba, is rgb
 		let inputMeta = TextureMeta(width: 64, height: 1, imageFormat: .rgb8 )
-		let CharacterToColourMap = [
-			"r" : [255,   0,   0],
-			"y" : [255, 255,   0],  // yellow
-			"b" : [0,   0, 255]  // blue
+		let CharacterToColourMap : [String:[UInt8]] = [
+			"r" : [255,0,0],
+			"g" : [0,255,0],
+			"b" : [0,0,255],
+			"y" : [255,255,0],
+			"p" : [255,0,255]
 		]
-
-		let inputString = "rrrrrbbbbbyyyyyrrrrrbbbbbyyyyybbrrrrrbbbbbyyyyyrrrrrbbbbbyyyyybb"
+		let PadColour = "b"
+		let inputString = "rrrrrbbbbbyyyyyrrrrrbbbbbyyyyybbrrrrrbbbbbyyyyyrrrrrbbbbbyyyyybb".padding(toLength: Int(inputMeta.width), withPad: "p", startingAt: 0)
+		//let inputString = "r".padding(toLength: Int(inputMeta.width), withPad: PadColour, startingAt: 0)
 		let inputData = inputString.map {
 			char in
-			return CharacterToColourMap["\(char)"]
+			let rgb = CharacterToColourMap["\(char)"] ?? [0,0,0]
+			return rgb
 		}
 		let inputDataFlat = inputData.flatMap{$0}
 		
@@ -96,7 +100,7 @@ class CameraPreviewInstance
 		try inputDataFlat.withUnsafeBytes
 		{
 			inputBytes in
-			convertor = try WebGpuConvertImageFormat(device: device, inputMeta: inputMeta, intputData: inputBytes, outputMeta: outputMeta)
+			convertor = try WebGpuConvertImageFormat(device: device, inputMeta: inputMeta, inputData: inputBytes, outputMeta: outputMeta)
 		}
 		
 	}

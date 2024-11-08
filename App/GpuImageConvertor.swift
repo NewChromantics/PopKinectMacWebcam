@@ -87,7 +87,7 @@ class WebGpuConvertImageFormat
 		}
 	}
 	
-	init(device:WebGPU.Device,inputMeta:TextureMeta,intputData:UnsafeRawBufferPointer,outputMeta:TextureMeta) throws
+	init(device:WebGPU.Device,inputMeta:TextureMeta,inputData:UnsafeRawBufferPointer,outputMeta:TextureMeta) throws
 	{
 		//	todo: this needs to be aligned to 32(in total) - do we need to pad, or will webgpu pad it?
 		let inputByteSize = try inputMeta.byteSize
@@ -103,15 +103,34 @@ class WebGpuConvertImageFormat
 		self.outputMeta = outputMeta
 
 		//	gr: is this the right place to do this?
-		device.queue.writeBuffer( inputBuffer, bufferOffset: 0, data: intputData)
+		device.queue.writeBuffer( inputBuffer, bufferOffset: 0, data: inputData)
 	}
 	
 	var ConvertImageKernelSource : String
 	{
 		return """
 		//	no byte access, so access is 32 bit and we need to work around that
-		@group(0) @binding(0) var<storage, read_write> inputRgb8 : array<u32>;
+		@group(0) @binding(0) var<storage, read> inputRgb8 : array<u32>;
 		@group(0) @binding(1) var<storage, read_write> outputBgra8 : array<u32>;
+
+		fn GetInputByte(index:u32) -> u32
+		{
+			let chunkIndex = index / 4;
+			let chunk = inputRgb8[chunkIndex];
+			let chunkByteIndex = index % 4;
+			let byte = chunk >> (chunkByteIndex*8);
+			return byte & 0xff;
+		}
+
+		fn GetInputBytes(pixelIndex:u32) -> vec3<u32>
+		{
+			let rgbChannelCount : u32 = 3;
+			let InputIndex = pixelIndex * rgbChannelCount;
+			let r = GetInputByte(InputIndex+0);
+			let g = GetInputByte(InputIndex+1);
+			let b = GetInputByte(InputIndex+2);
+			return vec3<u32>( r, g, b );
+		}
 
 		@compute @workgroup_size(1,1,1) fn Rgb8ToBgra8(
 			@builtin(workgroup_id) workgroup_id : vec3<u32>,
@@ -128,12 +147,11 @@ class WebGpuConvertImageFormat
 			let pixelIndex = (y * width) + x;
 
 			//	input is 32bit aligned, so we need to read individual parts
-			let data32 : u32 = 0xff00ff00;
-			//let red = (data32 >> 24) & 0xff;
-			let red = 255;
-			let green = 255;
-			let blue = 0;
-			let alpha = 255;
+			let rgb = GetInputBytes(pixelIndex);
+			let red : u32 = rgb.x;
+			let green : u32 = rgb.y;
+			let blue : u32 = rgb.z;
+			let alpha : u32 = 255;
 
 			let bgra32 = (blue<<0) | (green<<8) | (red<<16) | (alpha<<24);
 			outputBgra8[pixelIndex] = u32(bgra32);
@@ -172,11 +190,14 @@ class WebGpuConvertImageFormat
 		)
 		let pipeline = device.createComputePipeline(descriptor:pipelineDescription)
 		
+		let inputRgb8 = self.inputBuffer
+		let outputBgra8 = self.outputBuffer
+
 		let bindMeta = BindGroupDescriptor(label: "Buffer Bind",
 										   layout: pipeline.getBindGroupLayout(groupIndex:0),
 										   entries: [
-											BindGroupEntry( binding: 0, buffer: self.inputBuffer ),
-											BindGroupEntry( binding: 1, buffer: self.outputBuffer )
+											BindGroupEntry( binding: 0, buffer: inputRgb8 ),
+											BindGroupEntry( binding: 1, buffer: outputBgra8 )
 										   ]
 		)
 		
