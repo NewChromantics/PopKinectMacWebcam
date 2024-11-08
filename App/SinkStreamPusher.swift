@@ -19,7 +19,6 @@ class CameraWithSinkInterface
 		return sinkQueuePoiner.pointee?.takeUnretainedValue()
 	}
 	var sinkQueuePoiner : UnsafeMutablePointer<Unmanaged<CMSimpleQueue>?>!
-	var queueAlteredCount = 0
 
 	var startedDeviceAndStream : (CMIOObjectID,CMIOStreamID)? = nil
 	
@@ -180,8 +179,6 @@ class CameraWithSinkInterface
 			let ThisPointer = Unmanaged<CameraWithSinkInterface>.fromOpaque(refCon!)
 			let This = ThisPointer.takeUnretainedValue()
 			//This.readyToEnqueue = true
-			This.queueAlteredCount += 1
-			print("Queue altered \(This.queueAlteredCount)th time")
 		}
 		
 		//	this writes an address into pointerQueue
