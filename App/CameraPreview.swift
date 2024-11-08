@@ -45,12 +45,24 @@ let QuadVertexes =
 
 ]
 
+//	is there a proper webgpu api for this?
+func GetChannelsFrom(format: TextureFormat) throws -> UInt32
+{
+	switch format
+	{
+		case TextureFormat.rgba8Unorm:	return 4
+		case TextureFormat.bgra8Unorm:	return 4
+		default: throw RuntimeError("TextureFormat to channel count not implemented for (\(format))")
+	}
+}
 
-func GetTestTexture(device:Device) -> WebGPU.Texture
+func GetTestTexture(device:Device) throws -> WebGPU.Texture
 {
 	let kTextureWidth = UInt32(5);
 	let kTextureHeight = UInt32(7);
 	let size = Extent3d(width: kTextureWidth,height: kTextureHeight)
+	let format = TextureFormat.rgba8Unorm
+	let channels = try GetChannelsFrom(format: format)
 
 	let o : [UInt8] = [255,   0,   0, 255];  // red
 	let y : [UInt8] = [255, 255,   0, 255];  // yellow
@@ -69,11 +81,11 @@ func GetTestTexture(device:Device) -> WebGPU.Texture
 	let description = TextureDescriptor(label: "TestTexture",
 										usage: TextureUsage(rawValue: TextureUsage.textureBinding.rawValue|TextureUsage.copyDst.rawValue),
 										size: size,
-										format:TextureFormat.rgba8Unorm
+										format: format
 										)
 	let texture = device.createTexture(descriptor: description)
 
-	let layout = TextureDataLayout(offset: 0,bytesPerRow: kTextureWidth*4)
+	let layout = TextureDataLayout(offset: 0,bytesPerRow: kTextureWidth*channels)
 
 	//	copy-this-texture instructoin
 	let copyMeta = ImageCopyTexture(texture: texture)
@@ -87,6 +99,149 @@ func GetTestTexture(device:Device) -> WebGPU.Texture
 	return texture
 }
 
+struct TextureMeta
+{
+	var width : UInt32
+	var height : UInt32
+	var extent : Extent3d
+	{
+		return Extent3d(width: width,height: height)
+	}
+
+	var format : TextureFormat
+	var channels : UInt32
+	{
+		get throws
+		{
+			return try GetChannelsFrom(format: format)
+		}
+	}
+	var byteSize : UInt64
+	{
+		get throws
+		{
+			return try (UInt64(channels * width * height))
+		}
+	}
+}
+
+class WebGpuConvertImageFormat
+{
+	//	input as buffer
+	var inputBuffer : Buffer
+	var inputMeta : TextureMeta
+	//var outputTexture : Texture
+	//var outputMeta : TextureMeta
+	var outputBuffer : Buffer
+	var outputMeta : TextureMeta
+	
+	init(device:WebGPU.Device,inputMeta:TextureMeta,intputData:UnsafeRawBufferPointer,outputMeta:TextureMeta) throws
+	{
+		//	todo: this needs to be aligned to 32(in total) - do we need to pad, or will webgpu pad it?
+		let inputByteSize = try inputMeta.byteSize
+		let inputUsage = BufferUsage(rawValue: BufferUsage.storage.rawValue | BufferUsage.copyDst.rawValue )
+		let inputBufferDescription = BufferDescriptor(label: "convertImageInput", usage:inputUsage, size: inputByteSize )
+		self.inputBuffer = device.createBuffer(descriptor: inputBufferDescription)
+		self.inputMeta = inputMeta
+
+		let outputByteSize = try outputMeta.byteSize
+		let outputUsage = BufferUsage(rawValue: BufferUsage.storage.rawValue | BufferUsage.copyDst.rawValue )
+		let outputBufferDescription = BufferDescriptor(label: "convertImageOutput", usage:outputUsage, size: outputByteSize )
+		self.outputBuffer = device.createBuffer(descriptor: outputBufferDescription)
+		self.outputMeta = outputMeta
+
+		//	gr: is this the right place to do this?
+		device.queue.writeBuffer( inputBuffer, bufferOffset: 0, data: intputData)
+	}
+	
+	var ConvertImageKernelSource : String
+	{
+		return """
+		//	no byte access, so access is 32 bit and we need to work around that
+		@group(0) @binding(0) var<storage, read_write> inputRgb8 : array<u32>;
+		@group(0) @binding(1) var<storage, read_write> outputBgra8 : array<u32>;
+
+		@compute @workgroup_size(1,1,1) fn Rgb8ToBgra8(
+			@builtin(workgroup_id) workgroup_id : vec3<u32>,
+			@builtin(local_invocation_id) local_invocation_id : vec3<u32>,
+			@builtin(global_invocation_id) global_invocation_id : vec3<u32>,
+			@builtin(local_invocation_index) local_invocation_index: u32,
+			@builtin(num_workgroups) num_workgroups: vec3<u32>
+		)
+		{
+			let width = num_workgroups.x;
+			let height = num_workgroups.y;
+			let x = workgroup_id.x;
+			let y = workgroup_id.y;
+			let pixelIndex = (y * width) + x;
+
+			//	input is 32bit aligned, so we need to read individual parts
+			let data32 : u32 = 0xff00ff00;
+			//let red = (data32 >> 24) & 0xff;
+			let red = 128;
+			let green = 64;
+			let blue = 0;
+			let alpha = 255;
+
+			let bgra32 = (red<<0) | (green<<8) | (blue<<16) | (alpha<<24);
+			outputBgra8[pixelIndex] = u32(bgra32);
+		}
+		"""
+	}
+	
+	//	put new data into the input buffer
+	//	func writeData
+	
+	func AddConvertPass(device:Device,encoder:CommandEncoder)
+	{
+		let computeMeta = ComputePassDescriptor(label: "Convert Image")
+		let pass = encoder.beginComputePass(descriptor: computeMeta)
+		
+		let bindGroupLayout = device.createBindGroupLayout(descriptor: BindGroupLayoutDescriptor(
+			entries: [
+				BindGroupLayoutEntry(binding: 0,visibility:.compute, buffer: BufferBindingLayout(type:.readOnlyStorage) ),
+				BindGroupLayoutEntry(binding: 1,visibility:.compute, buffer: BufferBindingLayout(type:.storage) ),
+			]
+		))
+		
+		let pipelineLayout = device.createPipelineLayout(descriptor: PipelineLayoutDescriptor(
+			bindGroupLayouts: [bindGroupLayout])
+		)
+		
+		let kernelSource = ShaderSourceWgsl(code:ConvertImageKernelSource)
+		let kernelMeta = ShaderModuleDescriptor(label:"Convert Kernel",nextInChain: kernelSource)
+		let kernelModule = device.createShaderModule(descriptor: kernelMeta)
+		let kernelStage = ProgrammableStageDescriptor(module: kernelModule)
+		
+		let pipelineDescription = ComputePipelineDescriptor(
+			label: "ConvertImagePipeline",
+			layout: pipelineLayout,
+			compute: kernelStage
+		)
+		let pipeline = device.createComputePipeline(descriptor:pipelineDescription)
+		
+		let bindMeta = BindGroupDescriptor(label: "Buffer Bind",
+										   layout: pipeline.getBindGroupLayout(groupIndex:0),
+										   entries: [
+											BindGroupEntry( binding: 0, buffer: self.inputBuffer ),
+											BindGroupEntry( binding: 1, buffer: self.outputBuffer )
+										   ]
+		)
+		
+		let bindGroup = device.createBindGroup(descriptor: bindMeta)
+		
+		pass.setPipeline(pipeline)
+		pass.setBindGroup(groupIndex: 0,group: bindGroup)
+		let width = inputMeta.width
+		let height = inputMeta.height
+		let depth = UInt32(1)
+		pass.dispatchWorkgroups(workgroupcountx: width,workgroupcounty: height,workgroupcountz: depth)
+		pass.end()
+		
+	}
+}
+
+
 
 class CameraPreviewInstance
 {
@@ -97,19 +252,57 @@ class CameraPreviewInstance
 	var texture : Texture?
 	var sampler : Sampler?
 	var bindGroup : BindGroup?
+	var rgba : Buffer?
+	var convertor : WebGpuConvertImageFormat?
 	
 	//	can we get this from the surface view?
 	var windowTextureFormat = TextureFormat.bgra8Unorm
 
-	func InitTexture(device:Device)
+	func InitConvertor(device:Device) throws
 	{
-		self.texture = GetTestTexture(device: device)
+		let outputMeta = TextureMeta(width: 5, height: 7, format: TextureFormat.bgra8Unorm)
+
+		let inputMeta = TextureMeta(width: 5, height: 7, format: TextureFormat.rgba8Unorm)
+		let o : [UInt8] = [255,   0,   0, 255];  // red
+		let y : [UInt8] = [255, 255,   0, 255];  // yellow
+		let b : [UInt8] = [  0,   0, 255, 255];  // blue
+		let inputData : [[UInt8]] = [
+			b, o, o, o, o,
+			o, y, y, y, o,
+			o, y, o, o, o,
+			o, y, y, o, o,
+			o, y, o, o, o,
+			o, y, o, o, o,
+			o, o, o, o, o,
+		]
+		let inputDataFlat = inputData.flatMap{$0}
+		
+		
+		try inputDataFlat.withUnsafeBytes
+		{
+			inputBytes in
+			convertor = try WebGpuConvertImageFormat(device: device, inputMeta: inputMeta, intputData: inputBytes, outputMeta: outputMeta)
+		}
+		
+	}
+	
+	func InitTexture(device:Device) throws
+	{
+		self.texture = try GetTestTexture(device: device)
 		self.sampler = device.createSampler()
 
+		/*
+		let format = TextureFormat.rgba8Unorm
+		//	gr: how do we get this from the format?
+		let channels = try GetChannelsFrom(format: format)
+		let textureByteSize = channels * self.texture!.width * self.texture!.height
+		let readPixelsBufferDescription = BufferDescriptor(label: "ReadBackPixels", usage:.copyDst, size: UInt64(textureByteSize) )
+		self.readPixelsBuffer = device.createBuffer(descriptor: readPixelsBufferDescription)
+		 */
 	}
 	
 	
-	func InitResources(device:Device)
+	func InitResources(device:Device) throws
 	{
 		//	already initialised
 		if ( pipeline != nil )
@@ -117,7 +310,8 @@ class CameraPreviewInstance
 			return
 		}
 		
-		InitTexture(device: device)
+		try InitConvertor(device: device)
+		try InitTexture(device: device)
 		
 		let vertexShaderSource = """
 		struct VertexOut {
@@ -220,18 +414,21 @@ class CameraPreviewInstance
 		}
 	}
 	
-	func Render(device:Device,encoder:CommandEncoder,surfaceView:TextureView)
+	func Render(device:Device,encoder:CommandEncoder,surface:Texture) throws
 	{
-		InitResources(device: device)
+		try InitResources(device: device)
 		guard let pipeline else
 		{
 			return
 		}
 		
+		convertor?.AddConvertPass(device: device, encoder: encoder)
+		
+		
 		let renderPass = encoder.beginRenderPass(descriptor: RenderPassDescriptor(
 			colorAttachments: [
 				RenderPassColorAttachment(
-					view: surfaceView,
+					view: surface.createView(),
 					loadOp: .clear,
 					storeOp: .store,
 					clearValue: WebGPU.Color(r: 0, g: 1, b: 1, a: 1))]))
@@ -239,8 +436,17 @@ class CameraPreviewInstance
 		renderPass.setBindGroup(groupIndex: 0,group:bindGroup)
 		renderPass.setVertexBuffer(slot: 0, buffer: vertexBuffer!)
 		renderPass.draw(vertexCount: self.vertexCount!)
+		
+		//let CopySurfaceSrc = ImageCopyTexture(texture: surface)
+		//let CopySurfaceDest = ImageCopyBuffer(buffer:readPixelsBuffer!)
+		//let CopySize = Extent3d(width: surface.width,height: surface.height)
+		
 		renderPass.end()
 		
+		
+		//encoder.copyTextureToBuffer(source: CopySurfaceSrc, destination: CopySurfaceDest, copySize: CopySize)
+		
+
 	}
 }
 
