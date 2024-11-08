@@ -99,6 +99,32 @@ func GetTestTexture(device:Device) throws -> WebGPU.Texture
 	return texture
 }
 
+enum ConvertorImageFormat
+{
+	case rgb8
+	case bgra8
+	
+	//	will throw for unhandled or unconvertible types
+	func GetTextureFormat() throws -> TextureFormat
+	{
+		switch self
+		{
+			case .rgb8:		throw RuntimeError("rgb8 has no TextureFormat equivilent")
+			case .bgra8:	return TextureFormat.bgra8Unorm
+			default: throw RuntimeError("unhandled ConvertorImageFormat \(self)")
+		}
+	}
+	
+	var channelCount : UInt32
+	{
+		switch self
+		{
+			case .rgb8:		return 3
+			case .bgra8:	return 4
+		}
+	}
+}
+
 struct TextureMeta
 {
 	var width : UInt32
@@ -114,13 +140,20 @@ struct TextureMeta
 	{
 		return Extent3d(width: width,height: height)
 	}
-
-	var format : TextureFormat
+	var imageFormat : ConvertorImageFormat
+	var textureFormat : TextureFormat
+	{
+		get throws
+		{
+			return try imageFormat.GetTextureFormat()
+		}
+	}
+	
 	var channels : UInt32
 	{
 		get throws
 		{
-			return try GetChannelsFrom(format: format)
+			return try imageFormat.channelCount
 		}
 	}
 	var byteSize : UInt64
@@ -277,22 +310,21 @@ class CameraPreviewInstance
 	{
 		//	gr: out seems to need to be a byte-multiple 256
 		//	https://developer.mozilla.org/en-US/docs/Web/API/GPUCommandEncoder/copyBufferToTexture
-		let outputMeta = TextureMeta(width: 64, height: 10, format: TextureFormat.bgra8Unorm)
+		let outputMeta = TextureMeta(width: 64, height: 10, imageFormat: .bgra8)
 
 		//	gr: convertor not actually using rgba, is rgb
-		let inputMeta = TextureMeta(width: 64, height: 1, format: TextureFormat.rgba8Unorm)
-		let o : [UInt8] = [255,   0,   0, 255];  // red
-		let y : [UInt8] = [255, 255,   0, 255];  // yellow
-		let b : [UInt8] = [  0,   0, 255, 255];  // blue
-		let inputData : [[UInt8]] = [
-			b, o, o, o, o,
-			o, y, y, y, o,
-			o, y, o, o, o,
-			o, y, y, o, o,
-			o, y, o, o, o,
-			o, y, o, o, o,
-			o, o, o, o, o,
+		let inputMeta = TextureMeta(width: 64, height: 1, imageFormat: .rgb8 )
+		let CharacterToColourMap = [
+			"r" : [255,   0,   0],
+			"y" : [255, 255,   0],  // yellow
+			"b" : [0,   0, 255]  // blue
 		]
+
+		let inputString = "rrrrrbbbbbyyyyyrrrrrbbbbbyyyyybbrrrrrbbbbbyyyyyrrrrrbbbbbyyyyybb"
+		let inputData = inputString.map {
+			char in
+			return CharacterToColourMap["\(char)"]
+		}
 		let inputDataFlat = inputData.flatMap{$0}
 		
 		
@@ -434,10 +466,10 @@ class CameraPreviewInstance
 		convertor?.AddConvertPass(device: device, encoder: encoder)
 		if ( convertedRgba == nil )
 		{
-			let rgbaDesc = TextureDescriptor(	label: "convertedrgba",
+			let rgbaDesc = try TextureDescriptor(	label: "convertedrgba",
 												usage: TextureUsage(rawValue: TextureUsage.textureBinding.rawValue|TextureUsage.copyDst.rawValue),
 												size: convertor!.outputMeta.extent,
-												format: convertor!.outputMeta.format
+												format: convertor!.outputMeta.textureFormat
 			)
 			convertedRgba = device.createTexture(descriptor: rgbaDesc)
 		}
