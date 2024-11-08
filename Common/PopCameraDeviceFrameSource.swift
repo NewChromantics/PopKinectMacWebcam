@@ -220,8 +220,8 @@ class PopCameraDeviceFrameSource : FrameSource
 		{
 			let options : [AnyHashable:Any] = [
 				//"Format":"Yuv_8_88"
-				"Format":"RGB",
-				"DepthFormat":"Depth16mm"
+				"Format":"RGB"
+				//"DepthFormat":"Depth16mm"
 			]
 			self.deviceInstance = PopCameraDeviceInstance(serial:deviceSerial,options:options)
 		}
@@ -235,8 +235,8 @@ class PopCameraDeviceFrameSource : FrameSource
 		//	skip non-depth
 		while ( NextFrame != nil )
 		{
-			//	is depth
-			if ( NextFrame!.Meta.Planes?[0].Channels == 1 )
+			//	is/not depth
+			if ( NextFrame!.Meta.Planes?[0].Channels != 1 )
 			{
 				break
 			}
@@ -275,7 +275,7 @@ class PopCameraDeviceFrameSource : FrameSource
 			//	lock pixels...
 			CVPixelBufferLockBaseAddress(pixelBuffer, [])
 
-			try RenderPlanes(pixelBuffer: pixelBuffer, pixelData:pixelData, pixelDataMeta:planes[0] )
+			//try RenderRgbPlanes(pixelBuffer: pixelBuffer, pixelData:pixelData, pixelDataMeta:planes[0] )
 			
 			//RenderFrame(pixelBuffer, text:"todo: render new frame", backgroundColour: NSColor.red.cgColor)
 			//RenderFrame(pixelBuffer,timestamp:timestamp)
@@ -341,7 +341,7 @@ class PopCameraDeviceFrameSource : FrameSource
 		return text
 	}
 	
-	func RenderPlanes(pixelBuffer:CVPixelBuffer,pixelData:Data,pixelDataMeta:PlaneMeta) throws
+	func RenderDepthPlanes(pixelBuffer:CVPixelBuffer,pixelData:Data,pixelDataMeta:PlaneMeta) throws
 	{
 		let destPixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer)
 		//	just write directly for now
@@ -398,6 +398,61 @@ class PopCameraDeviceFrameSource : FrameSource
 			}
 		}
 		 
+	}
+	
+	func RenderRgbPlanes(pixelBuffer:CVPixelBuffer,pixelData:Data,pixelDataMeta:PlaneMeta) throws
+	{
+		let destPixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer)
+		//	just write directly for now
+		let destData = CVPixelBufferGetBaseAddress(pixelBuffer)
+		let destDataSize = CVPixelBufferGetDataSize(pixelBuffer)
+		
+		let width = CVPixelBufferGetWidth(pixelBuffer)
+		let height = CVPixelBufferGetHeight(pixelBuffer)
+		
+		//	this may be aligned...
+		let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+		let destChannels = bytesPerRow / width
+		let srcChannels = Int(pixelDataMeta.Channels)
+		if ( srcChannels != 3 )
+		{
+			throw RuntimeError("Got depth??")
+		}
+		
+		pixelData.withUnsafeBytes
+		{
+			//(srcBytes: UnsafePointer<UInt8>)
+			(srcBytes:UnsafeRawBufferPointer)
+			in
+			//let srcPtr = UnsafeRawPointer(srcBytes)
+			let srcPtr = srcBytes.baseAddress!
+			let src8s = srcBytes.bindMemory(to: UInt8.self)
+			let dest8s = destData!.bindMemory(to: UInt8.self, capacity: destDataSize)
+			let WriteCount = min( srcBytes.count, destDataSize )
+			//let destPtr = UnsafeMutableRawBufferPointer(rebasing: destData[start ..< end])
+			//destData?.copyMemory(from: srcPtr, byteCount: WriteCount)
+			for i in 0...(width*height)-1
+			{
+				let s = (i*srcChannels)
+				let d = (i*destChannels)
+				if ( s >= pixelDataMeta.DataSize )
+				{
+					break
+				}
+
+				let r = src8s[s+0]
+				let g = src8s[s+min(1,srcChannels-1)]
+				let b = src8s[s+min(2,srcChannels-1)]
+				let a : UInt8 = 255
+				
+				//	bgra
+				dest8s[d+0] = b
+				dest8s[d+1] = g
+				dest8s[d+2] = r
+				dest8s[d+3] = a
+			}
+		}
+		
 	}
 	
 	func RenderFrame(_ pixelBuffer:CVPixelBuffer,text:String,backgroundColour:CGColor)
