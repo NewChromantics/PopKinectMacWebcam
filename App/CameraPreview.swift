@@ -103,6 +103,13 @@ struct TextureMeta
 {
 	var width : UInt32
 	var height : UInt32
+	var bytesPerRow : UInt32
+	{
+		get throws
+		{
+			return try width * channels
+		}
+	}
 	var extent : Extent3d
 	{
 		return Extent3d(width: width,height: height)
@@ -134,6 +141,14 @@ class WebGpuConvertImageFormat
 	//var outputMeta : TextureMeta
 	var outputBuffer : Buffer
 	var outputMeta : TextureMeta
+	var outputBufferCopyMeta : ImageCopyBuffer
+	{
+		get throws
+		{
+			let layout = try TextureDataLayout(offset: 0,bytesPerRow: outputMeta.bytesPerRow)
+			return ImageCopyBuffer(layout: layout, buffer: outputBuffer)
+		}
+	}
 	
 	init(device:WebGPU.Device,inputMeta:TextureMeta,intputData:UnsafeRawBufferPointer,outputMeta:TextureMeta) throws
 	{
@@ -145,7 +160,7 @@ class WebGpuConvertImageFormat
 		self.inputMeta = inputMeta
 
 		let outputByteSize = try outputMeta.byteSize
-		let outputUsage = BufferUsage(rawValue: BufferUsage.storage.rawValue | BufferUsage.copyDst.rawValue )
+		let outputUsage = BufferUsage(rawValue: BufferUsage.storage.rawValue | BufferUsage.copyDst.rawValue | BufferUsage.copySrc.rawValue )
 		let outputBufferDescription = BufferDescriptor(label: "convertImageOutput", usage:outputUsage, size: outputByteSize )
 		self.outputBuffer = device.createBuffer(descriptor: outputBufferDescription)
 		self.outputMeta = outputMeta
@@ -178,12 +193,12 @@ class WebGpuConvertImageFormat
 			//	input is 32bit aligned, so we need to read individual parts
 			let data32 : u32 = 0xff00ff00;
 			//let red = (data32 >> 24) & 0xff;
-			let red = 128;
-			let green = 64;
+			let red = 255;
+			let green = 255;
 			let blue = 0;
 			let alpha = 255;
 
-			let bgra32 = (red<<0) | (green<<8) | (blue<<16) | (alpha<<24);
+			let bgra32 = (blue<<0) | (green<<8) | (red<<16) | (alpha<<24);
 			outputBgra8[pixelIndex] = u32(bgra32);
 		}
 		"""
@@ -251,18 +266,21 @@ class CameraPreviewInstance
 	var vertexCount : UInt32?
 	var texture : Texture?
 	var sampler : Sampler?
-	var bindGroup : BindGroup?
-	var rgba : Buffer?
+
 	var convertor : WebGpuConvertImageFormat?
-	
+	var convertedRgba : Texture?
+
 	//	can we get this from the surface view?
 	var windowTextureFormat = TextureFormat.bgra8Unorm
 
 	func InitConvertor(device:Device) throws
 	{
-		let outputMeta = TextureMeta(width: 5, height: 7, format: TextureFormat.bgra8Unorm)
+		//	gr: out seems to need to be a byte-multiple 256
+		//	https://developer.mozilla.org/en-US/docs/Web/API/GPUCommandEncoder/copyBufferToTexture
+		let outputMeta = TextureMeta(width: 64, height: 10, format: TextureFormat.bgra8Unorm)
 
-		let inputMeta = TextureMeta(width: 5, height: 7, format: TextureFormat.rgba8Unorm)
+		//	gr: convertor not actually using rgba, is rgb
+		let inputMeta = TextureMeta(width: 64, height: 1, format: TextureFormat.rgba8Unorm)
 		let o : [UInt8] = [255,   0,   0, 255];  // red
 		let y : [UInt8] = [255, 255,   0, 255];  // yellow
 		let b : [UInt8] = [  0,   0, 255, 255];  // blue
@@ -389,15 +407,6 @@ class CameraPreviewInstance
 			return
 		}
 		
-		let bindMeta = BindGroupDescriptor(label: "Texture bind",
-			layout: pipeline.getBindGroupLayout(groupIndex:0),
-			entries: [
-				BindGroupEntry( binding: 0, sampler: self.sampler! ),
-				BindGroupEntry( binding: 1, textureView: self.texture!.createView() )
-			]
-		)
-		
-		self.bindGroup = device.createBindGroup(descriptor: bindMeta)
 		
 		
 		
@@ -423,30 +432,44 @@ class CameraPreviewInstance
 		}
 		
 		convertor?.AddConvertPass(device: device, encoder: encoder)
+		if ( convertedRgba == nil )
+		{
+			let rgbaDesc = TextureDescriptor(	label: "convertedrgba",
+												usage: TextureUsage(rawValue: TextureUsage.textureBinding.rawValue|TextureUsage.copyDst.rawValue),
+												size: convertor!.outputMeta.extent,
+												format: convertor!.outputMeta.format
+			)
+			convertedRgba = device.createTexture(descriptor: rgbaDesc)
+		}
+		//	now should be able to just turn the converted image into a texture!
+		try encoder.copyBufferToTexture(source: convertor!.outputBufferCopyMeta, destination: ImageCopyTexture(texture:convertedRgba!), copySize: convertor!.outputMeta.extent)
 		
+		let bindMeta = BindGroupDescriptor(label: "Texture bind",
+										   layout: pipeline.getBindGroupLayout(groupIndex:0),
+										   entries: [
+											BindGroupEntry( binding: 0, sampler: self.sampler! ),
+											BindGroupEntry( binding: 1, textureView: self.convertedRgba!.createView() )
+											//BindGroupEntry( binding: 1, textureView: self.texture!.createView() )
+										   ]
+		)
 		
+		let bindGroup = device.createBindGroup(descriptor: bindMeta)
+
+		let ClearColour = WebGPU.Color(r: 0, g: 1, b: 1, a: 1)
 		let renderPass = encoder.beginRenderPass(descriptor: RenderPassDescriptor(
 			colorAttachments: [
 				RenderPassColorAttachment(
 					view: surface.createView(),
 					loadOp: .clear,
 					storeOp: .store,
-					clearValue: WebGPU.Color(r: 0, g: 1, b: 1, a: 1))]))
+					clearValue: ClearColour
+				)]))
 		renderPass.setPipeline(pipeline)
 		renderPass.setBindGroup(groupIndex: 0,group:bindGroup)
 		renderPass.setVertexBuffer(slot: 0, buffer: vertexBuffer!)
 		renderPass.draw(vertexCount: self.vertexCount!)
 		
-		//let CopySurfaceSrc = ImageCopyTexture(texture: surface)
-		//let CopySurfaceDest = ImageCopyBuffer(buffer:readPixelsBuffer!)
-		//let CopySize = Extent3d(width: surface.width,height: surface.height)
-		
 		renderPass.end()
-		
-		
-		//encoder.copyTextureToBuffer(source: CopySurfaceSrc, destination: CopySurfaceDest, copySize: CopySize)
-		
-
 	}
 }
 
