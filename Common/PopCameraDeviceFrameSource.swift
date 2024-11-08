@@ -172,10 +172,11 @@ class PopCameraDeviceFrameSource : FrameSource
 				{
 					print(Error)
 				}
+				try await Task.sleep(for: .seconds(1) )
 			}
 				
 			//	this throws if the task is cancelled
-			try await Task.sleep(for: .seconds(1) )
+			try await Task.sleep(for: .milliseconds(1) )
 			continue
 		}
 	}
