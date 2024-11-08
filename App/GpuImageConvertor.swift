@@ -182,7 +182,7 @@ class WebGpuConvertImageFormat
 		let kernelSource = ShaderSourceWgsl(code:ConvertImageKernelSource)
 		let kernelMeta = ShaderModuleDescriptor(label:"Convert Kernel",nextInChain: kernelSource)
 		let kernelModule = device.createShaderModule(descriptor: kernelMeta)
-		let kernelStage = ProgrammableStageDescriptor(module: kernelModule)
+		let kernelStage = ProgrammableStageDescriptor(module: kernelModule, entryPoint: "Rgb8ToBgra8")
 		
 		let pipelineDescription = ComputePipelineDescriptor(
 			label: "ConvertImagePipeline",
