@@ -74,8 +74,6 @@ class WebGpuConvertImageFormat
 	//	input as buffer
 	var inputBuffer : Buffer
 	var inputMeta : TextureMeta
-	//var outputTexture : Texture
-	//var outputMeta : TextureMeta
 	var outputBuffer : Buffer
 	var outputMeta : TextureMeta
 	var outputBufferCopyMeta : ImageCopyBuffer
@@ -87,7 +85,7 @@ class WebGpuConvertImageFormat
 		}
 	}
 	
-	init(device:WebGPU.Device,inputMeta:TextureMeta,inputData:UnsafeRawBufferPointer,outputMeta:TextureMeta) throws
+	init(device:WebGPU.Device,inputMeta:TextureMeta,outputMeta:TextureMeta) throws
 	{
 		//	todo: this needs to be aligned to 32(in total) - do we need to pad, or will webgpu pad it?
 		let inputByteSize = try inputMeta.byteSize
@@ -101,9 +99,6 @@ class WebGpuConvertImageFormat
 		let outputBufferDescription = BufferDescriptor(label: "convertImageOutput", usage:outputUsage, size: outputByteSize )
 		self.outputBuffer = device.createBuffer(descriptor: outputBufferDescription)
 		self.outputMeta = outputMeta
-
-		//	gr: is this the right place to do this?
-		device.queue.writeBuffer( inputBuffer, bufferOffset: 0, data: inputData)
 	}
 	
 	var ConvertImageKernelSource : String
@@ -162,8 +157,14 @@ class WebGpuConvertImageFormat
 	//	put new data into the input buffer
 	//	func writeData
 	
-	func AddConvertPass(device:Device,encoder:CommandEncoder)
+	func AddConvertPass(inputData:[UInt8],device:Device,encoder:CommandEncoder)
 	{
+		inputData.withUnsafeBytes
+		{
+			inputBytes in
+			device.queue.writeBuffer( inputBuffer, bufferOffset: 0, data: inputBytes)
+		}
+
 		let computeMeta = ComputePassDescriptor(label: "Convert Image")
 		let pass = encoder.beginComputePass(descriptor: computeMeta)
 		

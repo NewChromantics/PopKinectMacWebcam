@@ -275,6 +275,7 @@ final class SinkStreamPusher : NSObject, ObservableObject
 	
 	//	allow change at runtime
 	var frameSource : FrameSource? = nil
+	var lastFrame : Frame?
 	
 	var _videoDescription: CMFormatDescription!
 	var _bufferPool: CVPixelBufferPool!
@@ -404,6 +405,7 @@ final class SinkStreamPusher : NSObject, ObservableObject
 		}
 		
 		let Frame = try await frameSource.PopNewFrame()
+		lastFrame = Frame
 		let Sample = try Frame.sampleBuffer
 		
 		try camera.Send(Sample)

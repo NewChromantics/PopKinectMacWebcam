@@ -56,7 +56,29 @@ func GetChannelsFrom(format: TextureFormat) throws -> UInt32
 	}
 }
 
+func GetTestRgbImage() -> (TextureMeta,[UInt8])
+{
+	let CharacterToColourMap : [String:[UInt8]] = [
+		"r" : [255,0,0],
+		"g" : [0,255,0],
+		"b" : [0,0,255],
+		"y" : [255,255,0],
+		"p" : [255,0,255]
+	]
+	let inputMeta = TextureMeta(width: 64, height: 1, imageFormat: .rgb8 )
+	let PadColour = "b"
+	let MissingColour : [UInt8] = [0,0,0]
+	let inputString = "rrrrrbbbbbyyyyyrrrrrbbbbbyyyyybbrrrrrbbbbbyyyyyrrrrrbbbbbyyyyybb".padding(toLength: Int(inputMeta.width), withPad: "p", startingAt: 0)
+	//let inputString = "r".padding(toLength: Int(inputMeta.width), withPad: PadColour, startingAt: 0)
+	let inputData = inputString.map {
+		char in
+		let rgb = CharacterToColourMap["\(char)"] ?? MissingColour
+		return rgb
+	}
+	let inputDataFlat = inputData.flatMap{$0}
 
+	return (inputMeta,inputDataFlat)
+}
 
 class CameraPreviewInstance
 {
@@ -77,33 +99,9 @@ class CameraPreviewInstance
 		//	https://developer.mozilla.org/en-US/docs/Web/API/GPUCommandEncoder/copyBufferToTexture
 		let outputMeta = TextureMeta(width: 64, height: 10, imageFormat: .bgra8)
 
-		//	gr: convertor not actually using rgba, is rgb
-		let inputMeta = TextureMeta(width: 64, height: 1, imageFormat: .rgb8 )
-		let CharacterToColourMap : [String:[UInt8]] = [
-			"r" : [255,0,0],
-			"g" : [0,255,0],
-			"b" : [0,0,255],
-			"y" : [255,255,0],
-			"p" : [255,0,255]
-		]
-		let PadColour = "b"
-		let MissingColour : [UInt8] = [0,0,0]
-		let inputString = "rrrrrbbbbbyyyyyrrrrrbbbbbyyyyybbrrrrrbbbbbyyyyyrrrrrbbbbbyyyyybb".padding(toLength: Int(inputMeta.width), withPad: "p", startingAt: 0)
-		//let inputString = "r".padding(toLength: Int(inputMeta.width), withPad: PadColour, startingAt: 0)
-		let inputData = inputString.map {
-			char in
-			let rgb = CharacterToColourMap["\(char)"] ?? MissingColour
-			return rgb
-		}
-		let inputDataFlat = inputData.flatMap{$0}
-		
-		
-		try inputDataFlat.withUnsafeBytes
-		{
-			inputBytes in
-			convertor = try WebGpuConvertImageFormat(device: device, inputMeta: inputMeta, inputData: inputBytes, outputMeta: outputMeta)
-		}
-		
+		let (inputMeta,inputData) = GetTestRgbImage()
+		convertor = try WebGpuConvertImageFormat(device: device, inputMeta: inputMeta, outputMeta: outputMeta)
+
 	}
 	
 	func InitResources(device:Device) throws
@@ -208,7 +206,7 @@ class CameraPreviewInstance
 		}
 	}
 	
-	func Render(device:Device,encoder:CommandEncoder,surface:Texture) throws
+	func Render(device:Device,encoder:CommandEncoder,surface:Texture,drawFrame:Frame?) throws
 	{
 		try InitResources(device: device)
 		guard let pipeline else
@@ -216,7 +214,24 @@ class CameraPreviewInstance
 			return
 		}
 		
-		convertor?.AddConvertPass(device: device, encoder: encoder)
+		var (inputRgbMeta,inputRgbData) = GetTestRgbImage()
+		
+		if let pixelBuffer = drawFrame?.pixels
+		{
+			//	extract bytes
+			let w = CVPixelBufferGetWidth(pixelBuffer)
+			let h = CVPixelBufferGetHeight(pixelBuffer)
+			let format = CVPixelBufferGetPixelFormatType(pixelBuffer)
+			let meta = TextureMeta( width: UInt32(w), height: UInt32(h), imageFormat:.rgb8)
+			
+			inputRgbMeta = meta
+			inputRgbData = [UInt8](drawFrame!.originalPixels!)
+			
+			let outputMeta = TextureMeta( width: UInt32(w), height: UInt32(h), imageFormat:.bgra8)
+			convertor = try WebGpuConvertImageFormat(device: device, inputMeta: inputRgbMeta, outputMeta: outputMeta)
+		}
+			
+		convertor?.AddConvertPass(inputData: inputRgbData, device: device, encoder: encoder)
 		if ( convertedRgba == nil )
 		{
 			let rgbaDesc = try TextureDescriptor(	label: "convertedrgba",
@@ -267,6 +282,8 @@ let cameraPreviewInstance = CameraPreviewInstance()
 
 struct CameraPreview : View, WebGPU.ContentRenderer
 {
+	@EnvironmentObject var sinkStreamPusher : SinkStreamPusher
+	
 	var body : some View
 	{
 		WebGpuView(contentRenderer: self)
@@ -278,7 +295,12 @@ struct CameraPreview : View, WebGPU.ContentRenderer
 	{
 		do
 		{
-			try webGpuRenderer.Render(metalLayer: layer, getCommands:cameraPreviewInstance.Render )
+			try webGpuRenderer.Render(metalLayer: layer)
+			{
+				device,encoder,surface in
+				let lastFrame = sinkStreamPusher.lastFrame
+				try cameraPreviewInstance.Render( device: device, encoder: encoder, surface: surface, drawFrame:lastFrame)
+			}
 		}
 		catch let Error
 		{

@@ -4,6 +4,9 @@ import Cocoa
 
 struct Frame
 {
+	public var originalPixels : Data?
+	public var dimensions : (UInt32,UInt32)
+	
 	public var pixels : CVPixelBuffer?
 	public var format : CMFormatDescription?
 
@@ -143,7 +146,10 @@ class DebugFrameSource : FrameSource
 		RenderFrame(pixelBuffer,timestamp:timestamp)
 		CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
 		
-		let frame = Frame(pixels: pixelBuffer, format: self.videoFormat, time: timestamp)
+		let Width = UInt32( CVPixelBufferGetWidth(pixelBuffer) )
+		let Height = UInt32( CVPixelBufferGetHeight(pixelBuffer) )
+
+		let frame = Frame(dimensions: (Width, Height), pixels: pixelBuffer, format: self.videoFormat, time: timestamp)
 		
 		frameCounter = frameCounter+1
 		

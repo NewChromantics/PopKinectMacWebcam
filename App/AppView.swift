@@ -128,7 +128,7 @@ struct AppView : View
 {
 	var extensionManager : ExtensionManager {	return extensionManagerInstance!	}
 	@ObservedObject var cameraDebug = LogBuffer()
-	@EnvironmentObject var sinkStreamPusher : SinkStreamPusher	//	cannot use base type here
+	@EnvironmentObject var sinkStreamPusher : SinkStreamPusher
 	@EnvironmentObject var popCameraDeviceManager : PopCameraDeviceManager
 	@State var activeDeviceSerial : String?
 	let debugSourceSerial = "Debug"
@@ -305,6 +305,7 @@ struct AppView : View
 			.padding(.horizontal)
 			
 			CameraPreview()
+				.environmentObject(sinkStreamPusher)
 			
 			ScrollView
 			{

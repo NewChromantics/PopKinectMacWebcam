@@ -208,7 +208,7 @@ class PopCameraDeviceFrameSource : FrameSource
 		//	todo: get tmestamp from meta
 		let timestamp = CMClockGetTime(CMClockGetHostTimeClock())
 		let pixelFormat = DebugFormat.GetFormatDescripton()
-		let frame = Frame(pixels: pixelBuffer, format: pixelFormat, time: timestamp)
+		let frame = Frame(dimensions: (640,480), pixels: pixelBuffer, format: pixelFormat, time: timestamp)
 		return frame
 	}
 
@@ -291,7 +291,9 @@ class PopCameraDeviceFrameSource : FrameSource
 		//	todo: get tmestamp from meta
 		let timestamp = CMClockGetTime(CMClockGetHostTimeClock())
 		let pixelFormat = try planes[0].GetStreamImageFormat().GetFormatDescripton()
-		let frame = Frame(pixels: pixelBuffer, format: pixelFormat, time: timestamp)
+		let dimensions = (UInt32(planes[0].Width),UInt32(planes[0].Height))
+		var frame = Frame(dimensions: dimensions, pixels: pixelBuffer, format: pixelFormat, time: timestamp)
+		frame.originalPixels = pixelData
 		return frame
 	}
 	
