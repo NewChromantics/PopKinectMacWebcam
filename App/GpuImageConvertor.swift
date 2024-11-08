@@ -29,7 +29,7 @@ enum ConvertorImageFormat
 	}
 }
 
-struct TextureMeta
+struct TextureMeta : Equatable
 {
 	var width : UInt32
 	var height : UInt32

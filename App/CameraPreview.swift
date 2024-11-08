@@ -226,11 +226,21 @@ class CameraPreviewInstance
 			
 			inputRgbMeta = meta
 			inputRgbData = [UInt8](drawFrame!.originalPixels!)
-			
-			let outputMeta = TextureMeta( width: UInt32(w), height: UInt32(h), imageFormat:.bgra8)
-			convertor = try WebGpuConvertImageFormat(device: device, inputMeta: inputRgbMeta, outputMeta: outputMeta)
 		}
-			
+
+		//	see if we need to recreate convertor due to dimension(buffer) change)
+		if let convertor
+		{
+			if ( convertor.inputMeta != inputRgbMeta )
+			{
+				let w = inputRgbMeta.width
+				let h = inputRgbMeta.height
+				let outputMeta = TextureMeta( width:w, height:h, imageFormat:.bgra8)
+				self.convertor = try WebGpuConvertImageFormat(device: device, inputMeta: inputRgbMeta, outputMeta: outputMeta)
+				convertedRgba = nil
+			}
+		}
+		
 		convertor?.AddConvertPass(inputData: inputRgbData, device: device, encoder: encoder)
 		if ( convertedRgba == nil )
 		{
