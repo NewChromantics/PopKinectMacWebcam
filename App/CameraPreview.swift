@@ -75,7 +75,7 @@ class CameraPreviewInstance
 	{
 		//	gr: out seems to need to be a byte-multiple 256
 		//	https://developer.mozilla.org/en-US/docs/Web/API/GPUCommandEncoder/copyBufferToTexture
-		let outputMeta = TextureMeta(width: 64, height: 1, imageFormat: .bgra8)
+		let outputMeta = TextureMeta(width: 64, height: 10, imageFormat: .bgra8)
 
 		//	gr: convertor not actually using rgba, is rgb
 		let inputMeta = TextureMeta(width: 64, height: 1, imageFormat: .rgb8 )
@@ -87,11 +87,12 @@ class CameraPreviewInstance
 			"p" : [255,0,255]
 		]
 		let PadColour = "b"
+		let MissingColour : [UInt8] = [0,0,0]
 		let inputString = "rrrrrbbbbbyyyyyrrrrrbbbbbyyyyybbrrrrrbbbbbyyyyyrrrrrbbbbbyyyyybb".padding(toLength: Int(inputMeta.width), withPad: "p", startingAt: 0)
 		//let inputString = "r".padding(toLength: Int(inputMeta.width), withPad: PadColour, startingAt: 0)
 		let inputData = inputString.map {
 			char in
-			let rgb = CharacterToColourMap["\(char)"] ?? [0,0,0]
+			let rgb = CharacterToColourMap["\(char)"] ?? MissingColour
 			return rgb
 		}
 		let inputDataFlat = inputData.flatMap{$0}
