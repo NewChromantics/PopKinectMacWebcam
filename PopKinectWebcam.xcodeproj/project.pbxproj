@@ -23,6 +23,7 @@
 		BF7CEF832CB7DA4C00A20F77 /* ExtensionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF822CB7DA4C00A20F77 /* ExtensionManager.swift */; };
 		BF7CEF852CB7DB7900A20F77 /* AppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF842CB7DB7900A20F77 /* AppView.swift */; };
 		BF8474CE2CB7F97400016574 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
+		BFA93CF82CDE54340048480E /* GpuImageConvertor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA93CF72CDE54340048480E /* GpuImageConvertor.swift */; };
 		BFC021822CDA5349009D6E66 /* DawnNative in Frameworks */ = {isa = PBXBuildFile; productRef = BFC021812CDA5349009D6E66 /* DawnNative */; };
 		BFC021842CDA5349009D6E66 /* WebGPU in Frameworks */ = {isa = PBXBuildFile; productRef = BFC021832CDA5349009D6E66 /* WebGPU */; };
 		BFC021862CDA5349009D6E66 /* generate-webgpu in Frameworks */ = {isa = PBXBuildFile; productRef = BFC021852CDA5349009D6E66 /* generate-webgpu */; };
@@ -92,6 +93,7 @@
 		BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeError.swift; sourceTree = "<group>"; };
 		BF7CEF822CB7DA4C00A20F77 /* ExtensionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionManager.swift; sourceTree = "<group>"; };
 		BF7CEF842CB7DB7900A20F77 /* AppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppView.swift; sourceTree = "<group>"; };
+		BFA93CF72CDE54340048480E /* GpuImageConvertor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GpuImageConvertor.swift; sourceTree = "<group>"; };
 		BFDA39B02CC5B620003C8172 /* KinectStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinectStream.swift; sourceTree = "<group>"; };
 		BFDA39B22CC67666003C8172 /* PopCameraDeviceFrameSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopCameraDeviceFrameSource.swift; sourceTree = "<group>"; };
 		F990A865286F663F00159819 /* PopKinectWebcam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PopKinectWebcam.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -196,6 +198,7 @@
 				F990A86C286F664500159819 /* Assets.xcassets */,
 				BF3BBA602CDAB6B6003A0739 /* CameraPreview.swift */,
 				BF7CEF822CB7DA4C00A20F77 /* ExtensionManager.swift */,
+				BFA93CF72CDE54340048480E /* GpuImageConvertor.swift */,
 				BF23182C2CD7E19D00A94ABA /* PopCameraDeviceManager.swift */,
 				BF2317F32CD505CD00A94ABA /* SinkStreamPusher.swift */,
 			);
@@ -327,6 +330,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BF8474CE2CB7F97400016574 /* RuntimeError.swift in Sources */,
+				BFA93CF82CDE54340048480E /* GpuImageConvertor.swift in Sources */,
 				F990A869286F663F00159819 /* AppDelegate.swift in Sources */,
 				BF7CEF832CB7DA4C00A20F77 /* ExtensionManager.swift in Sources */,
 				BF2318292CD690EB00A94ABA /* Config.swift in Sources */,
