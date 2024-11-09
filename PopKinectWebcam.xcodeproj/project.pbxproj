@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BF1364992CDFB149004C965D /* DawnNative in Frameworks */ = {isa = PBXBuildFile; productRef = BF1364982CDFB149004C965D /* DawnNative */; };
 		BF2317F02CD5014500A94ABA /* SinkDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2317EF2CD5014500A94ABA /* SinkDevice.swift */; };
 		BF2317F42CD505CD00A94ABA /* SinkStreamPusher.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF2317F32CD505CD00A94ABA /* SinkStreamPusher.swift */; };
 		BF2317F52CD5579F00A94ABA /* FrameSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */; };
@@ -130,7 +129,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				BF4A29722CDF9AC600ECD2A9 /* WebGPU in Frameworks */,
-				BF1364992CDFB149004C965D /* DawnNative in Frameworks */,
 				BFDA39AA2CC57F58003C8172 /* PopCameraDevice in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -688,11 +686,6 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		BF1364982CDFB149004C965D /* DawnNative */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = BFC0219A2CDA56ED009D6E66 /* XCLocalSwiftPackageReference "../SwiftWebGpu" */;
-			productName = DawnNative;
-		};
 		BF4A296F2CDF9A7200ECD2A9 /* WebGPU */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BFC0219A2CDA56ED009D6E66 /* XCLocalSwiftPackageReference "../SwiftWebGpu" */;
