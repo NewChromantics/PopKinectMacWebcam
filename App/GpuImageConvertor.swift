@@ -263,20 +263,11 @@ extension WebGpuConvertImageFormat
 		let commandBuffer = encoder.finish()
 		
 		device.queue.submit(commands: [commandBuffer])
-		
-		try await device.queue.WaitForSubmit()
-		//	not implemented in swift-webgpu...
-		//await device.queue.onSubmittedWorkDone()		await convertor.outputBuffer.mapAsync(mode: .read, offset: 0, size: Int(convertor.outputMeta.byteSize), (Result<Void, RequestError<BufferMapAsyncStatus>>)->Void {} )
-
-		try await Task.sleep(for:.seconds(1))
-		
+	
 		//	read back output buffer to cpu
 		//	gr: when this fails, doesnt seem to error properly, but look in console for errors!
 		let readBuffer = convertor.outputMappable
-		//	deprecated - throws?
-		//try await readBuffer.mapAsync(mode: .read, offset: 0, size: Int(outputByteSize) )
-		//await convertor.outputBuffer.mapAsync(mode: .read, offset: 0, size: 1)
-		
+	
 		
 		var IsFinished = false
 		while ( !IsFinished )
@@ -290,13 +281,14 @@ extension WebGpuConvertImageFormat
 
 			try readBuffer.mapAsync(mode: .read, offset: 0, size: Int(outputByteSize), callback: callback)
 			//try readBuffer.mapAsync2(mode: .read, offset: 0, size: Int(outputByteSize), callback: callback)
-			
+			gpu.instance.processEvents()
+			//device.tick()
+
 			while ( !IsFinished )
 			{
-				device.tick()
-				try await Task.sleep(for:.milliseconds(10))
+				try await Task.sleep(for:.milliseconds(1))
 				let state = readBuffer.mapState
-				print("read-buffer mapped state; \(state)")
+				//print("read-buffer mapped state; \(state)")
 				if ( state == .mapped )
 				{
 					IsFinished = true
@@ -305,6 +297,8 @@ extension WebGpuConvertImageFormat
 				{
 					throw RuntimeError("Mapping failed")
 				}
+				gpu.instance.processEvents()
+				//device.tick()
 			}
 		}
 		
