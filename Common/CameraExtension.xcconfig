@@ -10,3 +10,7 @@ INFOPLIST_KEY_CFBundleDisplayName = PopKinectWebcam Camera Extension
 
 //	gr: not sure this is used, maybe just for app
 INFOPLIST_KEY_NSSystemExtensionUsageDescription = System extension in plist
+
+//	dawn currently only arm
+ARCHS = arm64
+VALID_ARCHS = arm64

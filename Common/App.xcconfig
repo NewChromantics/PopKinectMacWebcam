@@ -10,3 +10,7 @@ INFOPLIST_KEY_NSSystemExtensionUsageDescription = This app installs a camera ext
 INFOPLIST_KEY_NSHumanReadableCopyright = NewChromantics 2024
 
 INFOPLIST_KEY_CFBundleDisplayName = Kinect Webcam
+
+//	dawn currently only arm
+ARCHS = arm64
+VALID_ARCHS = arm64
