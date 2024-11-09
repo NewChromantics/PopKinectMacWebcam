@@ -1,6 +1,6 @@
 import SwiftUI
 import WebGPU
-
+import CoreMedia
 
 
 enum ConvertorImageFormat
@@ -9,12 +9,23 @@ enum ConvertorImageFormat
 	case bgra8
 	
 	//	will throw for unhandled or unconvertible types
-	func GetTextureFormat() throws -> TextureFormat
+	func GetWebGpuTextureFormat() throws -> TextureFormat
 	{
 		switch self
 		{
 			case .rgb8:		throw RuntimeError("rgb8 has no TextureFormat equivilent")
 			case .bgra8:	return TextureFormat.bgra8Unorm
+			default: throw RuntimeError("unhandled ConvertorImageFormat \(self)")
+		}
+	}
+	
+	//	will throw for unhandled or unconvertible types
+	func GetCoreMediaTextureFormat() throws -> CMPixelFormatType
+	{
+		switch self
+		{
+			case .rgb8:		return kCMPixelFormat_24RGB
+			case .bgra8:	return kCMPixelFormat_32BGRA
 			default: throw RuntimeError("unhandled ConvertorImageFormat \(self)")
 		}
 	}
@@ -29,7 +40,7 @@ enum ConvertorImageFormat
 	}
 }
 
-struct TextureMeta : Equatable
+public struct ImageMeta : Equatable
 {
 	var width : UInt32
 	var height : UInt32
@@ -49,7 +60,7 @@ struct TextureMeta : Equatable
 	{
 		get throws
 		{
-			return try imageFormat.GetTextureFormat()
+			return try imageFormat.GetWebGpuTextureFormat()
 		}
 	}
 	
@@ -73,9 +84,10 @@ class WebGpuConvertImageFormat
 {
 	//	input as buffer
 	var inputBuffer : Buffer
-	var inputMeta : TextureMeta
+	var inputMeta : ImageMeta
 	var outputBuffer : Buffer
-	var outputMeta : TextureMeta
+	var outputMappable : Buffer	//	to read pixels, need a mappable type, which is incompatible with the storage
+	var outputMeta : ImageMeta
 	var outputBufferCopyMeta : ImageCopyBuffer
 	{
 		get throws
@@ -85,7 +97,7 @@ class WebGpuConvertImageFormat
 		}
 	}
 	
-	init(device:WebGPU.Device,inputMeta:TextureMeta,outputMeta:TextureMeta) throws
+	init(device:WebGPU.Device,inputMeta:ImageMeta,outputMeta:ImageMeta) throws
 	{
 		//	todo: this needs to be aligned to 32(in total) - do we need to pad, or will webgpu pad it?
 		let inputByteSize = try inputMeta.byteSize
@@ -95,10 +107,14 @@ class WebGpuConvertImageFormat
 		self.inputMeta = inputMeta
 
 		let outputByteSize = try outputMeta.byteSize
-		let outputUsage = BufferUsage(rawValue: BufferUsage.storage.rawValue | BufferUsage.copyDst.rawValue | BufferUsage.copySrc.rawValue )
+		let outputUsage = BufferUsage(rawValue: BufferUsage.storage.rawValue | BufferUsage.copySrc.rawValue )
 		let outputBufferDescription = BufferDescriptor(label: "convertImageOutput", usage:outputUsage, size: outputByteSize )
 		self.outputBuffer = device.createBuffer(descriptor: outputBufferDescription)
 		self.outputMeta = outputMeta
+
+		let outputMappableUsage = BufferUsage(rawValue: BufferUsage.mapRead.rawValue | BufferUsage.copyDst.rawValue )
+		let outputMappableDescription = BufferDescriptor(label: "convertImageOutputMappable", usage:outputMappableUsage, size: outputByteSize )
+		self.outputMappable = device.createBuffer(descriptor: outputMappableDescription)
 	}
 	
 	var ConvertImageKernelSource : String
@@ -215,4 +231,96 @@ class WebGpuConvertImageFormat
 	}
 }
 
+
+func somecallback(x:BufferMapAsyncStatus) -> Void
+{
+}
+
+//	handy "do it all in one go" api
+extension WebGpuConvertImageFormat
+{
+	static let gpu = WebGPU.WebGpuRenderer()
+	
+	
+	
+	static func Convert(meta:ImageMeta,data:Data,outputFormat:ConvertorImageFormat) async throws -> [UInt8]
+	{
+		let outputMeta = ImageMeta(width: meta.width, height: meta.height, imageFormat: outputFormat)
+		//	todo: make an async gpu.WaitForDevice()
+		let device = try await gpu.waitForDevice()
+		let convertor = try WebGpuConvertImageFormat( device:device, inputMeta: meta, outputMeta: outputMeta )
+		
+		//	start a gpu run
+		let encoder = device.createCommandEncoder()
+		
+		let dataBytes = [UInt8](data)
+		convertor.AddConvertPass(inputData: dataBytes, device: device, encoder:encoder)
+		
+		//	need to copy to a mappable buffer so we can read it on cpu
+		let outputByteSize = convertor.outputBuffer.size
+		encoder.copyBufferToBuffer(source: convertor.outputBuffer, sourceOffset: 0, destination: convertor.outputMappable, destinationOffset: 0, size: outputByteSize)
+		
+		let commandBuffer = encoder.finish()
+		
+		device.queue.submit(commands: [commandBuffer])
+		
+		try await device.queue.WaitForSubmit()
+		//	not implemented in swift-webgpu...
+		//await device.queue.onSubmittedWorkDone()		await convertor.outputBuffer.mapAsync(mode: .read, offset: 0, size: Int(convertor.outputMeta.byteSize), (Result<Void, RequestError<BufferMapAsyncStatus>>)->Void {} )
+
+		try await Task.sleep(for:.seconds(1))
+		
+		//	read back output buffer to cpu
+		//	gr: when this fails, doesnt seem to error properly, but look in console for errors!
+		let readBuffer = convertor.outputMappable
+		//	deprecated - throws?
+		//try await readBuffer.mapAsync(mode: .read, offset: 0, size: Int(outputByteSize) )
+		//await convertor.outputBuffer.mapAsync(mode: .read, offset: 0, size: 1)
+		
+		
+		var IsFinished = false
+		while ( !IsFinished )
+		{
+			var callback : (BufferMapAsyncStatus) -> Void =
+			{
+				status in
+				print("Status \(status)")
+				IsFinished = status == .success
+			}
+
+			try readBuffer.mapAsync(mode: .read, offset: 0, size: Int(outputByteSize), callback: callback)
+			//try readBuffer.mapAsync2(mode: .read, offset: 0, size: Int(outputByteSize), callback: callback)
+			
+			while ( !IsFinished )
+			{
+				device.tick()
+				try await Task.sleep(for:.milliseconds(10))
+				let state = readBuffer.mapState
+				print("read-buffer mapped state; \(state)")
+				if ( state == .mapped )
+				{
+					IsFinished = true
+				}
+				else if ( state != .pending )
+				{
+					throw RuntimeError("Mapping failed")
+				}
+			}
+		}
+		
+		
+		let outputBufferView = readBuffer.getConstMappedRange(offset: 0)
+		guard let outputBufferView else
+		{
+			throw RuntimeError("No buffer view for output buffer")
+		}
+		let outputBufferView8 = outputBufferView.bindMemory(to: UInt8.self, capacity: Int(outputByteSize) )
+		let outputBufferView8Ptr = UnsafeBufferPointer(start: outputBufferView8, count: Int(outputByteSize) )
+		
+		let outputData = [UInt8](outputBufferView8Ptr)
+		readBuffer.unmap()
+
+		return outputData
+	}
+}
 

@@ -150,7 +150,7 @@ class PopCameraDeviceFrameSource : FrameSource
 		{
 			do
 			{
-				if let frame = try PopNextFramePixels()
+				if let frame = try await PopNextFramePixels()
 				{
 					return frame
 				}
@@ -214,7 +214,7 @@ class PopCameraDeviceFrameSource : FrameSource
 	}
 
 	
-	func PopNextFramePixels() throws -> Frame?
+	func PopNextFramePixels() async throws -> Frame?
 	{
 		if deviceInstance == nil
 		{
@@ -268,6 +268,12 @@ class PopCameraDeviceFrameSource : FrameSource
 		{
 			throw RuntimeError("Popped frame but no pixels")
 		}
+
+		let planeMeta = ImageMeta( width:UInt32(planes[0].Width), height:UInt32(planes[0].Height), imageFormat:.rgb8 )
+
+		let rgba8Pixels = try await WebGpuConvertImageFormat.Convert(meta:planeMeta,data:pixelData,outputFormat:.bgra8)
+		
+		let rgba8Format = try StreamImageFormat(width: planeMeta.width, height: planeMeta.height, pixelFormat: ConvertorImageFormat.bgra8.GetCoreMediaTextureFormat())
 		
 		//	write into the buffer
 		do
@@ -275,6 +281,10 @@ class PopCameraDeviceFrameSource : FrameSource
 			//	lock pixels...
 			CVPixelBufferLockBaseAddress(pixelBuffer, [])
 
+			let destData = CVPixelBufferGetBaseAddress(pixelBuffer)
+			let destDataSize = CVPixelBufferGetDataSize(pixelBuffer)
+			destData?.copyMemory(from: rgba8Pixels, byteCount: rgba8Pixels.count)
+			
 			//try RenderRgbPlanes(pixelBuffer: pixelBuffer, pixelData:pixelData, pixelDataMeta:planes[0] )
 			
 			//RenderFrame(pixelBuffer, text:"todo: render new frame", backgroundColour: NSColor.red.cgColor)
@@ -292,9 +302,9 @@ class PopCameraDeviceFrameSource : FrameSource
 		//	todo: get tmestamp from meta
 		let timestamp = CMClockGetTime(CMClockGetHostTimeClock())
 		let pixelFormat = try planes[0].GetStreamImageFormat().GetFormatDescripton()
-		let dimensions = (UInt32(planes[0].Width),UInt32(planes[0].Height))
+		let dimensions = (planeMeta.width,planeMeta.height)
 		var frame = Frame(dimensions: dimensions, pixels: pixelBuffer, format: pixelFormat, time: timestamp)
-		frame.originalPixels = pixelData
+		frame.originalPixels = Data(rgba8Pixels)
 		return frame
 	}
 	

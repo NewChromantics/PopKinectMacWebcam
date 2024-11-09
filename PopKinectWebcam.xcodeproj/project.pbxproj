@@ -24,6 +24,8 @@
 		BF7CEF852CB7DB7900A20F77 /* AppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF842CB7DB7900A20F77 /* AppView.swift */; };
 		BF8474CE2CB7F97400016574 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7CEF7D2CB6CB9D00A20F77 /* RuntimeError.swift */; };
 		BFA93CF82CDE54340048480E /* GpuImageConvertor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFA93CF72CDE54340048480E /* GpuImageConvertor.swift */; };
+		BFA93D002CDEBEF80048480E /* DawnNative in Frameworks */ = {isa = PBXBuildFile; productRef = BFA93CFF2CDEBEF80048480E /* DawnNative */; };
+		BFA93D022CDEBEF80048480E /* WebGPU in Frameworks */ = {isa = PBXBuildFile; productRef = BFA93D012CDEBEF80048480E /* WebGPU */; };
 		BFC021822CDA5349009D6E66 /* DawnNative in Frameworks */ = {isa = PBXBuildFile; productRef = BFC021812CDA5349009D6E66 /* DawnNative */; };
 		BFC021842CDA5349009D6E66 /* WebGPU in Frameworks */ = {isa = PBXBuildFile; productRef = BFC021832CDA5349009D6E66 /* WebGPU */; };
 		BFC021862CDA5349009D6E66 /* generate-webgpu in Frameworks */ = {isa = PBXBuildFile; productRef = BFC021852CDA5349009D6E66 /* generate-webgpu */; };
@@ -107,8 +109,25 @@
 		F990A882286F666500159819 /* Extension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Extension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		BFA93CFB2CDEBEBD0048480E /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				GpuImageConvertor.swift,
+			);
+			target = F990A864286F663F00159819 /* PopKinectWebcam */;
+		};
+		BFA93CFE2CDEBEE70048480E /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				GpuImageConvertor.swift,
+			);
+			target = F990A87A286F666500159819 /* CameraExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		BF2318482CD8F65200A94ABA /* App */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = App; sourceTree = "<group>"; };
+		BF2318482CD8F65200A94ABA /* App */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (BFA93CFB2CDEBEBD0048480E /* PBXFileSystemSynchronizedBuildFileExceptionSet */, BFA93CFE2CDEBEE70048480E /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = App; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -132,6 +151,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				BFDA39AC2CC5A088003C8172 /* PopCameraDevice in Frameworks */,
+				BFA93D002CDEBEF80048480E /* DawnNative in Frameworks */,
+				BFA93D022CDEBEF80048480E /* WebGPU in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -690,6 +711,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		BFA93CFF2CDEBEF80048480E /* DawnNative */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFC0219A2CDA56ED009D6E66 /* XCLocalSwiftPackageReference "../SwiftWebGpu" */;
+			productName = DawnNative;
+		};
+		BFA93D012CDEBEF80048480E /* WebGPU */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BFC0219A2CDA56ED009D6E66 /* XCLocalSwiftPackageReference "../SwiftWebGpu" */;
+			productName = WebGPU;
+		};
 		BFC021812CDA5349009D6E66 /* DawnNative */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BFC021802CDA5349009D6E66 /* XCRemoteSwiftPackageReference "swift-webgpu" */;

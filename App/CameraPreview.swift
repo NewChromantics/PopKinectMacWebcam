@@ -56,7 +56,7 @@ func GetChannelsFrom(format: TextureFormat) throws -> UInt32
 	}
 }
 
-func GetTestRgbImage() -> (TextureMeta,[UInt8])
+func GetTestRgbImage() -> (ImageMeta,[UInt8])
 {
 	let CharacterToColourMap : [String:[UInt8]] = [
 		"r" : [255,0,0],
@@ -65,7 +65,7 @@ func GetTestRgbImage() -> (TextureMeta,[UInt8])
 		"y" : [255,255,0],
 		"p" : [255,0,255]
 	]
-	let inputMeta = TextureMeta(width: 64, height: 1, imageFormat: .rgb8 )
+	let inputMeta = ImageMeta(width: 64, height: 1, imageFormat: .rgb8 )
 	let PadColour = "b"
 	let MissingColour : [UInt8] = [0,0,0]
 	let inputString = "rrrrrbbbbbyyyyyrrrrrbbbbbyyyyybbrrrrrbbbbbyyyyyrrrrrbbbbbyyyyybb".padding(toLength: Int(inputMeta.width), withPad: "p", startingAt: 0)
@@ -92,12 +92,22 @@ class CameraPreviewInstance
 
 	//	can we get this from the surface view?
 	var windowTextureFormat = TextureFormat.bgra8Unorm
-
+/*
+	init()
+	{
+		Task
+		{
+			var (inputRgbMeta,inputRgbData) = GetTestRgbImage()
+			let someBytes = try await WebGpuConvertImageFormat.Convert(meta: inputRgbMeta, data: Data(inputRgbData), outputFormat:.bgra8)
+			print("done")
+		}
+	}
+	*/
 	func InitConvertor(device:Device) throws
 	{
 		//	gr: out seems to need to be a byte-multiple 256
 		//	https://developer.mozilla.org/en-US/docs/Web/API/GPUCommandEncoder/copyBufferToTexture
-		let outputMeta = TextureMeta(width: 64, height: 10, imageFormat: .bgra8)
+		let outputMeta = ImageMeta(width: 64, height: 10, imageFormat: .bgra8)
 
 		let (inputMeta,inputData) = GetTestRgbImage()
 		convertor = try WebGpuConvertImageFormat(device: device, inputMeta: inputMeta, outputMeta: outputMeta)
@@ -214,6 +224,42 @@ class CameraPreviewInstance
 			return
 		}
 		
+		if let drawFrame
+		{
+			if let lastFramePixels = drawFrame.originalPixels
+			{
+				let pixelsMeta = ImageMeta(width: drawFrame.dimensions.0, height: drawFrame.dimensions.1, imageFormat: .bgra8)
+				//	write these pixels to a texture
+				let pixelsDesc = try TextureDescriptor(	label: "FramePixels",
+														usage: TextureUsage(rawValue: TextureUsage.textureBinding.rawValue|TextureUsage.copyDst.rawValue),
+														size: pixelsMeta.extent,
+														format: pixelsMeta.textureFormat
+				)
+				convertedRgba = device.createTexture(descriptor: pixelsDesc)
+				//	now should be able to just turn the converted image into a texture!
+				//try encoder.copyBufferToTexture(source: convertor!.outputBufferCopyMeta, destination: ImageCopyTexture(texture:convertedRgba!), copySize: convertor!.outputMeta.extent)
+				try lastFramePixels.withUnsafeBytes {
+					bytes in
+					let textureLayout = try TextureDataLayout(offset: 0,bytesPerRow: pixelsMeta.bytesPerRow)
+					device.queue.writeTexture(destination: ImageCopyTexture(texture: convertedRgba!), data: bytes, dataLayout: textureLayout, writeSize: pixelsMeta.extent)
+					
+				}
+				
+			}
+		}
+	
+		if ( convertedRgba == nil )
+		{
+			let pixelsMeta = ImageMeta(width:1, height: 1, imageFormat: .bgra8)
+			//	write these pixels to a texture
+			let pixelsDesc = try TextureDescriptor(	label: "Dummy",
+													usage: TextureUsage(rawValue: TextureUsage.textureBinding.rawValue|TextureUsage.copyDst.rawValue),
+													size: pixelsMeta.extent,
+													format: pixelsMeta.textureFormat
+			)
+			convertedRgba = device.createTexture(descriptor: pixelsDesc)
+		}
+		/*
 		var (inputRgbMeta,inputRgbData) = GetTestRgbImage()
 		
 		if let pixelBuffer = drawFrame?.pixels
@@ -222,7 +268,7 @@ class CameraPreviewInstance
 			let w = CVPixelBufferGetWidth(pixelBuffer)
 			let h = CVPixelBufferGetHeight(pixelBuffer)
 			let format = CVPixelBufferGetPixelFormatType(pixelBuffer)
-			let meta = TextureMeta( width: UInt32(w), height: UInt32(h), imageFormat:.rgb8)
+			let meta = ImageMeta( width: UInt32(w), height: UInt32(h), imageFormat:.rgb8)
 			
 			inputRgbMeta = meta
 			inputRgbData = [UInt8](drawFrame!.originalPixels!)
@@ -235,13 +281,14 @@ class CameraPreviewInstance
 			{
 				let w = inputRgbMeta.width
 				let h = inputRgbMeta.height
-				let outputMeta = TextureMeta( width:w, height:h, imageFormat:.bgra8)
+				let outputMeta = ImageMeta( width:w, height:h, imageFormat:.bgra8)
 				self.convertor = try WebGpuConvertImageFormat(device: device, inputMeta: inputRgbMeta, outputMeta: outputMeta)
 				convertedRgba = nil
 			}
 		}
 		
 		convertor?.AddConvertPass(inputData: inputRgbData, device: device, encoder: encoder)
+		
 		if ( convertedRgba == nil )
 		{
 			let rgbaDesc = try TextureDescriptor(	label: "convertedrgba",
@@ -253,7 +300,7 @@ class CameraPreviewInstance
 		}
 		//	now should be able to just turn the converted image into a texture!
 		try encoder.copyBufferToTexture(source: convertor!.outputBufferCopyMeta, destination: ImageCopyTexture(texture:convertedRgba!), copySize: convertor!.outputMeta.extent)
-		
+		 */
 		
 		let sampler = device.createSampler()
 			
