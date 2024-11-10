@@ -123,6 +123,7 @@ class PopCameraDeviceFrameSource : FrameSource
 	var warningText : String?
 	var deviceSerial : String
 
+	public var depthParams = DepthParams()
 	
 	init(deviceSerial:String)
 	{
@@ -271,7 +272,7 @@ class PopCameraDeviceFrameSource : FrameSource
 		
 		var rgba8PixelsData = Data()
 		
-		try await WebGpuConvertImageFormat.Convert(meta:planeMeta,data:pixelData,outputFormat:.bgra8)
+		try await WebGpuConvertImageFormat.Convert(meta:planeMeta,data:pixelData,outputFormat:.bgra8,depthParams: depthParams)
 		{
 			rgba8Pixels in
 			

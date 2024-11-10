@@ -7,6 +7,31 @@ import WebGPU
 typealias Color = SwiftUI.Color
 
 
+//	allow slider (anything) to bind an int to a float binding
+//	https://stackoverflow.com/questions/65736518/how-do-i-create-a-slider-in-swiftui-bound-to-an-int-type-property
+public extension Binding {
+	
+	static func convert<TInt, TFloat>(_ intBinding: Binding<TInt>) -> Binding<TFloat>
+	where TInt:   BinaryInteger,
+		  TFloat: BinaryFloatingPoint{
+			  
+			  Binding<TFloat> (
+				get: { TFloat(intBinding.wrappedValue) },
+				set: { intBinding.wrappedValue = TInt($0) }
+			  )
+		  }
+	
+	static func convert<TFloat, TInt>(_ floatBinding: Binding<TFloat>) -> Binding<TInt>
+	where TFloat: BinaryFloatingPoint,
+		  TInt:   BinaryInteger {
+			  
+			  Binding<TInt> (
+				get: { TInt(floatBinding.wrappedValue) },
+				set: { floatBinding.wrappedValue = TFloat($0) }
+			  )
+		  }
+}
+
 let inst = createInstance()
 
 
@@ -132,6 +157,7 @@ struct AppView : View
 	@EnvironmentObject var popCameraDeviceManager : PopCameraDeviceManager
 	@State var activeDeviceSerial : String?
 	let debugSourceSerial = "Debug"
+	@State var depthParams = DepthParams()	//	todo: bind directly(possible?) to frame source variables
 
 	init()
 	{
@@ -304,8 +330,36 @@ struct AppView : View
 			}
 			.padding(.horizontal)
 			
-			CameraPreview()
-				.environmentObject(sinkStreamPusher)
+			HStack
+			{
+				CameraPreview()
+					.environmentObject(sinkStreamPusher)
+			
+				VStack
+				{
+					if ( sinkStreamPusher.frameSource is PopCameraDeviceFrameSource )
+					{
+						Text("Depth range of \(depthParams.depthClipNear)...\(depthParams.depthClipFar)mm")
+						
+						//	todo: make a 2 headed slider
+						//	gr: ^^^ i already wrote one!
+						Slider(value: .convert($depthParams.depthClipNear), in: 1...65535)
+							.onChange(of: depthParams.depthClipNear)
+						{
+							let framesource = sinkStreamPusher.frameSource as! PopCameraDeviceFrameSource
+							framesource.depthParams = self.depthParams
+						}
+						
+						Slider(value: .convert($depthParams.depthClipFar), in: 1...65535)
+							.onChange(of: depthParams.depthClipFar)
+						{
+							let framesource = sinkStreamPusher.frameSource as! PopCameraDeviceFrameSource
+							framesource.depthParams = self.depthParams
+						}
+						
+					}
+				}
+			}
 			
 			ScrollView
 			{

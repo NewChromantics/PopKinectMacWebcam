@@ -4,15 +4,17 @@ import CoreMedia
 
 struct DepthParams
 {
-	var depthMin = UInt32(10)
-	var depthMax = UInt32(15000)
+	var depthClipNear = UInt32(10)
+	var depthClipFar = UInt32(15000)
+	//let depthMin = UInt32(1)	//	0 is invalid
+	//let depthMax = UInt32(4095)	//	11bit range 0xfff
 }
 
 
 let ConvertImageKernelSource = """
 struct DepthParams {
- depthMin : u32,	//	100
- depthMax : u32,	//	15000
+ depthClipNear : u32,	//	100
+ depthClipFar : u32,	//	15000
 }
 
   //	no byte access, so access is 32 bit and we need to work around that
@@ -150,7 +152,7 @@ struct DepthParams {
   
    //	input is 32bit aligned, so we need to read individual parts
    let depth16 = GetInputDepth16(pixelIndex);
-   var depthf = Range32( depthParams.depthMin, depthParams.depthMax, depth16 );
+   var depthf = Range32( depthParams.depthClipNear, depthParams.depthClipFar, depth16 );
    //depthf = Range32( 0, width, x );
    let rgb = NormalToRgb(depthf);
    let valid = ( depthf >= 0.0 && depthf <= 1.0); 
@@ -268,7 +270,7 @@ class WebGpuConvertImageFormat
 	var outputBuffer : Buffer
 	var outputMappable : Buffer	//	to read pixels, need a mappable type, which is incompatible with the storage
 	var outputMeta : ImageMeta
-	var depthParams = DepthParams()
+	var depthParams : DepthParams
 	var depthParamsBuffer : Buffer
 	
 	var outputBufferCopyMeta : ImageCopyBuffer
@@ -280,8 +282,10 @@ class WebGpuConvertImageFormat
 		}
 	}
 	
-	init(device:WebGPU.Device,inputMeta:ImageMeta,outputMeta:ImageMeta) throws
+	init(device:WebGPU.Device,inputMeta:ImageMeta,outputMeta:ImageMeta,depthParams:DepthParams=DepthParams()) throws
 	{
+		self.depthParams = depthParams
+		
 		//	todo: this needs to be aligned to 32(in total) - do we need to pad, or will webgpu pad it?
 		let inputByteSize = try inputMeta.byteSize
 		let inputUsage = BufferUsage(rawValue: BufferUsage.storage.rawValue | BufferUsage.copyDst.rawValue )
@@ -403,12 +407,12 @@ extension WebGpuConvertImageFormat
 		return outputData
 	}
 	
-	static func Convert(meta:ImageMeta,data:Data,outputFormat:ConvertorImageFormat,onGotOutput:(UnsafeBufferPointer<UInt8>)throws->Void) async throws
+	static func Convert(meta:ImageMeta,data:Data,outputFormat:ConvertorImageFormat,depthParams:DepthParams=DepthParams(),onGotOutput:(UnsafeBufferPointer<UInt8>)throws->Void) async throws
 	{
 		let outputMeta = ImageMeta(width: meta.width, height: meta.height, imageFormat: outputFormat)
 		//	todo: make an async gpu.WaitForDevice()
 		let device = try await gpu.waitForDevice()
-		let convertor = try WebGpuConvertImageFormat( device:device, inputMeta: meta, outputMeta: outputMeta )
+		let convertor = try WebGpuConvertImageFormat( device:device, inputMeta: meta, outputMeta: outputMeta, depthParams:depthParams )
 		
 		//	start a gpu run
 		let encoder = device.createCommandEncoder()
