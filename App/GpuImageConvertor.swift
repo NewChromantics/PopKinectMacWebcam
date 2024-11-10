@@ -288,6 +288,11 @@ class WebGpuConvertImageFormat
 		}
 	}
 	
+	//	cachable pipeline params
+	var buffer_BindGroupLayout : BindGroupLayout!
+	var buffer_PipelineLayout : PipelineLayout!
+	var buffer_computePipeline : ComputePipeline!
+	
 	init(device:WebGPU.Device,inputMeta:ImageMeta,outputMeta:ImageMeta,depthParams:DepthParams=DepthParams()) throws
 	{
 		self.depthParams = depthParams
@@ -322,6 +327,35 @@ class WebGpuConvertImageFormat
 		}
 	}
 	
+	func InitPipelineDescriptors(device:WebGPU.Device)
+	{
+		buffer_BindGroupLayout = device.createBindGroupLayout(descriptor: BindGroupLayoutDescriptor(
+			entries: [
+				BindGroupLayoutEntry(binding: 0,visibility:.compute, buffer: BufferBindingLayout(type:.readOnlyStorage) ),
+				BindGroupLayoutEntry(binding: 1,visibility:.compute, buffer: BufferBindingLayout(type:.storage) ),
+				BindGroupLayoutEntry(binding: 2,visibility:.compute, buffer: BufferBindingLayout(type:.uniform) ),
+			]
+		))
+		
+		buffer_PipelineLayout = device.createPipelineLayout(descriptor: PipelineLayoutDescriptor(
+			bindGroupLayouts: [buffer_BindGroupLayout])
+		)
+		
+		//let kernelName = "convert_rgb8_to_bgra8"
+		let kernelName = kernelEntryName
+		let kernelSource = ShaderSourceWgsl(code:ConvertImageKernelSource)
+		let kernelMeta = ShaderModuleDescriptor(label:"Convert Kernel",nextInChain: kernelSource)
+		let kernelModule = device.createShaderModule(descriptor: kernelMeta)
+		let kernelStage = ProgrammableStageDescriptor(module: kernelModule, entryPoint: kernelName)
+		
+		let pipelineDescription = ComputePipelineDescriptor(
+			label: "ConvertImagePipeline \(kernelName)",
+			layout: buffer_PipelineLayout,
+			compute: kernelStage
+		)
+		buffer_computePipeline = device.createComputePipeline(descriptor:pipelineDescription)
+	}
+	
 	var kernelEntryName : String
 	{
 		return "convert_\(inputMeta.imageFormat)_to_\(outputMeta.imageFormat)"
@@ -341,31 +375,8 @@ class WebGpuConvertImageFormat
 		let computeMeta = ComputePassDescriptor(label: "Convert Image")
 		let pass = encoder.beginComputePass(descriptor: computeMeta)
 		
-		let bindGroupLayout = device.createBindGroupLayout(descriptor: BindGroupLayoutDescriptor(
-			entries: [
-				BindGroupLayoutEntry(binding: 0,visibility:.compute, buffer: BufferBindingLayout(type:.readOnlyStorage) ),
-				BindGroupLayoutEntry(binding: 1,visibility:.compute, buffer: BufferBindingLayout(type:.storage) ),
-				BindGroupLayoutEntry(binding: 2,visibility:.compute, buffer: BufferBindingLayout(type:.uniform) ),
-			]
-		))
-		
-		let pipelineLayout = device.createPipelineLayout(descriptor: PipelineLayoutDescriptor(
-			bindGroupLayouts: [bindGroupLayout])
-		)
-		
-		//let kernelName = "convert_rgb8_to_bgra8"
-		let kernelName = kernelEntryName
-		let kernelSource = ShaderSourceWgsl(code:ConvertImageKernelSource)
-		let kernelMeta = ShaderModuleDescriptor(label:"Convert Kernel",nextInChain: kernelSource)
-		let kernelModule = device.createShaderModule(descriptor: kernelMeta)
-		let kernelStage = ProgrammableStageDescriptor(module: kernelModule, entryPoint: kernelName)
-		
-		let pipelineDescription = ComputePipelineDescriptor(
-			label: "ConvertImagePipeline \(kernelName)",
-			layout: pipelineLayout,
-			compute: kernelStage
-		)
-		let pipeline = device.createComputePipeline(descriptor:pipelineDescription)
+		InitPipelineDescriptors(device:device)
+		let pipeline = buffer_computePipeline!
 		
 		let inputRgb8 = self.inputBuffer
 		let outputBgra8 = self.outputBuffer
@@ -437,12 +448,12 @@ class WebGpuConvertImageFormat
 				print("Status \(status)")
 				IsFinished = status == .success
 			}
-
+			
 			try readBuffer.mapAsync(mode: .read, offset: 0, size: Int(outputByteSize), callback: callback)
 			//try readBuffer.mapAsync2(mode: .read, offset: 0, size: Int(outputByteSize), callback: callback)
 			gpu.instance.processEvents()
 			//device.tick()
-
+			
 			while ( !IsFinished )
 			{
 				try await Task.sleep(for:.milliseconds(1))
