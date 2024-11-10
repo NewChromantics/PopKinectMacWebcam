@@ -390,54 +390,43 @@ class WebGpuConvertImageFormat
 		pass.end()
 		
 	}
-}
-
-
-func somecallback(x:BufferMapAsyncStatus) -> Void
-{
-}
-
-//	handy "do it all in one go" api
-extension WebGpuConvertImageFormat
-{
-	static let gpu = WebGPU.WebGpuRenderer()
 	
-	static func Convert(meta:ImageMeta,data:Data,outputFormat:ConvertorImageFormat) async throws -> Data
+	func Convert(gpu:WebGpuRenderer,data:Data,onGotOutput:(UnsafeBufferPointer<UInt8>)throws->Void) async throws
 	{
-		var outputData = Data()
-		try await Convert(meta:meta, data: data, outputFormat: outputFormat)
-		{
-			outputBufferView8Ptr in
-			outputData = Data(outputBufferView8Ptr)
-		}
-		return outputData
-	}
-	
-	static func Convert(meta:ImageMeta,data:Data,outputFormat:ConvertorImageFormat,depthParams:DepthParams=DepthParams(),onGotOutput:(UnsafeBufferPointer<UInt8>)throws->Void) async throws
-	{
-		let outputMeta = ImageMeta(width: meta.width, height: meta.height, imageFormat: outputFormat)
-		//	todo: make an async gpu.WaitForDevice()
 		let device = try await gpu.waitForDevice()
-		let convertor = try WebGpuConvertImageFormat( device:device, inputMeta: meta, outputMeta: outputMeta, depthParams:depthParams )
+		//let convertor = try WebGpuConvertImageFormat( device:device, inputMeta: meta, outputMeta: outputMeta, depthParams:depthParams )
+		
+		//	update depth params buffer
+		self.depthParamsBuffer = withUnsafeBytes(of: depthParams)
+		{
+			bytes in
+			let buffer = device.createBuffer(descriptor: BufferDescriptor(
+				usage: .uniform,
+				size: UInt64(bytes.count),
+				mappedAtCreation: true))
+			buffer.getMappedRange().copyMemory(from: bytes.baseAddress!, byteCount: bytes.count)
+			buffer.unmap()
+			return buffer
+		}
 		
 		//	start a gpu run
 		let encoder = device.createCommandEncoder()
 		
 		let dataBytes = [UInt8](data)
-		convertor.AddConvertPass(inputData: dataBytes, device: device, encoder:encoder)
+		AddConvertPass(inputData: dataBytes, device: device, encoder:encoder)
 		
 		//	need to copy to a mappable buffer so we can read it on cpu
-		let outputByteSize = convertor.outputBuffer.size
-		encoder.copyBufferToBuffer(source: convertor.outputBuffer, sourceOffset: 0, destination: convertor.outputMappable, destinationOffset: 0, size: outputByteSize)
+		let outputByteSize = self.outputBuffer.size
+		encoder.copyBufferToBuffer(source: self.outputBuffer, sourceOffset: 0, destination: self.outputMappable, destinationOffset: 0, size: outputByteSize)
 		
 		let commandBuffer = encoder.finish()
 		
 		device.queue.submit(commands: [commandBuffer])
-	
+		
 		//	read back output buffer to cpu
 		//	gr: when this fails, doesnt seem to error properly, but look in console for errors!
-		let readBuffer = convertor.outputMappable
-	
+		let readBuffer = self.outputMappable
+		
 		
 		var IsFinished = false
 		while ( !IsFinished )
@@ -492,6 +481,34 @@ extension WebGpuConvertImageFormat
 			throw error
 		}
 		
+	}
+}
+
+
+//	handy "do it all in one go" api
+extension WebGpuConvertImageFormat
+{
+	static let gpu = WebGPU.WebGpuRenderer()
+	
+	static func Convert(meta:ImageMeta,data:Data,outputFormat:ConvertorImageFormat) async throws -> Data
+	{
+		var outputData = Data()
+		try await Convert(meta:meta, data: data, outputFormat: outputFormat)
+		{
+			outputBufferView8Ptr in
+			outputData = Data(outputBufferView8Ptr)
+		}
+		return outputData
+	}
+	
+	static func Convert(meta:ImageMeta,data:Data,outputFormat:ConvertorImageFormat,depthParams:DepthParams=DepthParams(),onGotOutput:(UnsafeBufferPointer<UInt8>)throws->Void) async throws
+	{
+		let outputMeta = ImageMeta(width: meta.width, height: meta.height, imageFormat: outputFormat)
+		//	todo: make an async gpu.WaitForDevice()
+		let device = try await gpu.waitForDevice()
+		let convertor = try WebGpuConvertImageFormat( device:device, inputMeta: meta, outputMeta: outputMeta, depthParams:depthParams )
+		
+		try await convertor.Convert(gpu:gpu,data:data,onGotOutput:onGotOutput)
 	}
 }
 

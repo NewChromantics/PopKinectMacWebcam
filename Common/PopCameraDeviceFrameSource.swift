@@ -2,7 +2,7 @@ import CoreMediaIO
 import Cocoa
 import PopCameraDevice
 import Accelerate
-
+import WebGPU
 
 
 class PoolManager
@@ -61,6 +61,11 @@ class PopCameraDeviceFrameSource : FrameSource
 	public var drawErrorFrames = false
 	public var drawDepth = true
 	
+	
+	static let gpu = WebGPU.WebGpuRenderer()
+	//	store a convertor for each input format
+	//	todo: change to use ImageMeta as key
+	var convertor : [ConvertorImageFormat:WebGpuConvertImageFormat] = [:]
 	
 	init(deviceSerial:String)
 	{
@@ -198,7 +203,22 @@ class PopCameraDeviceFrameSource : FrameSource
 		
 		var rgba8PixelsData = Data()
 		
-		try await WebGpuConvertImageFormat.Convert(meta:planeMeta,data:pixelData,outputFormat:.bgra8,depthParams: depthParams)
+		if ( convertor[planeMeta.imageFormat] == nil )
+		{
+			let outputFormat = ConvertorImageFormat.bgra8
+			let outputMeta = ImageMeta(width: planeMeta.width, height: planeMeta.height, imageFormat: outputFormat)
+			let device = try await PopCameraDeviceFrameSource.gpu.waitForDevice()
+			let newConvertor = try WebGpuConvertImageFormat( device: device, inputMeta: planeMeta, outputMeta: outputMeta )
+			convertor[planeMeta.imageFormat] = newConvertor
+		}
+		guard let convertor = convertor[planeMeta.imageFormat] else
+		{
+			throw RuntimeError("Failed to make convertor for \(planeMeta.imageFormat)")
+		}
+		convertor.depthParams = depthParams
+		
+		//try await WebGpuConvertImageFormat.Convert(meta:planeMeta,data:pixelData,outputFormat:.bgra8,depthParams: depthParams)
+		try await convertor.Convert(gpu: PopCameraDeviceFrameSource.gpu, data: pixelData)
 		{
 			rgba8Pixels in
 			
