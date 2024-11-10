@@ -325,6 +325,8 @@ class WebGpuConvertImageFormat
 			buffer.unmap()
 			return buffer
 		}
+
+		InitPipelineDescriptors(device:device)
 	}
 	
 	func InitPipelineDescriptors(device:WebGPU.Device)
@@ -375,7 +377,6 @@ class WebGpuConvertImageFormat
 		let computeMeta = ComputePassDescriptor(label: "Convert Image")
 		let pass = encoder.beginComputePass(descriptor: computeMeta)
 		
-		InitPipelineDescriptors(device:device)
 		let pipeline = buffer_computePipeline!
 		
 		let inputRgb8 = self.inputBuffer
@@ -405,7 +406,6 @@ class WebGpuConvertImageFormat
 	func Convert(gpu:WebGpuRenderer,data:Data,onGotOutput:(UnsafeBufferPointer<UInt8>)throws->Void) async throws
 	{
 		let device = try await gpu.waitForDevice()
-		//let convertor = try WebGpuConvertImageFormat( device:device, inputMeta: meta, outputMeta: outputMeta, depthParams:depthParams )
 		
 		//	update depth params buffer
 		self.depthParamsBuffer = withUnsafeBytes(of: depthParams)
