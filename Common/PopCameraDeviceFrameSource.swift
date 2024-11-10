@@ -4,69 +4,6 @@ import PopCameraDevice
 import Accelerate
 
 
-func Range(_ min:Double,_ max:Double,_ value:Double) -> Double
-{
-	return (value-min)/(max-min)
-}
-
-func NormalToRainbowf(_ hue:Double) -> (Double,Double,Double)
-{
-	var Normal = hue
-	
-	if ( Normal < 0 || Normal > 1 )
-	{
-		return (0,0,0)
-	}
-	
-	//	same as NormalToRedGreenBluePurple
-	if ( Normal < 1/6 )
-	{
-		//	red to yellow
-		Normal = Range( 0/6, 1/6, Normal );
-		return (1, Normal, 0)
-	}
-	else if ( Normal < 2/6 )
-	{
-		//	yellow to green
-		Normal = Range( 1/6, 2/6, Normal );
-		return (1-Normal, 1, 0)
-	}
-	else if ( Normal < 3/6 )
-	{
-		//	green to cyan
-		Normal = Range( 2/6, 3/6, Normal );
-		return (0, 1, Normal)
-	}
-	else if ( Normal < 4/6 )
-	{
-		//	cyan to blue
-		Normal = Range( 3/6, 4/6, Normal );
-		return (0, 1-Normal, 1)
-	}
-	else if ( Normal < 5/6 )
-	{
-		//	blue to pink
-		Normal = Range( 4/6, 5/6, Normal );
-		return (Normal, 0, 1)
-	}
-	else //if ( Normal < 5/6 )
-	{
-		//	pink to red
-		Normal = Range( 5/6, 6/6, Normal )
-		return (1, 0, 1-Normal)
-	}
-}
-
-func NormalToRainbow(Normal:Double) -> (UInt8,UInt8,UInt8)
-{
-	let (rf,gf,bf) = NormalToRainbowf(Normal)
-	let r = UInt8(rf * 255.0)
-	let g = UInt8(gf * 255.0)
-	let b = UInt8(bf * 255.0)
-	return (r,g,b)
-}
-
-
 
 class PoolManager
 {
@@ -118,12 +55,12 @@ class PopCameraDeviceFrameSource : FrameSource
 	//	current pool, which may get reallocated as output sizes change
 	var bufferPool : PoolManager?
 	
-	//	render contents
-	//	externally set text
-	var warningText : String?
 	var deviceSerial : String
 
 	public var depthParams = DepthParams()
+	public var drawErrorFrames = false
+	public var drawDepth = true
+	
 	
 	init(deviceSerial:String)
 	{
@@ -158,23 +95,13 @@ class PopCameraDeviceFrameSource : FrameSource
 			}
 			catch let Error
 			{
-				return try GetDebugFrame( text:Error.localizedDescription )
-				throw Error
+				if ( drawErrorFrames )
+				{
+					return try GetDebugFrame( text:Error.localizedDescription )
+				}
+				//throw Error
 			}
 			
-			//	if there's a warning, show it
-			if let warningText
-			{
-				do
-				{
-					return try GetDebugFrame( text:warningText )
-				}
-				catch let Error
-				{
-					print(Error)
-				}
-				try await Task.sleep(for: .seconds(1) )
-			}
 				
 			//	this throws if the task is cancelled
 			try await Task.sleep(for: .milliseconds(1) )
@@ -221,7 +148,6 @@ class PopCameraDeviceFrameSource : FrameSource
 		
 		var NextFrame = try deviceInstance.PopNextFrame()
 		
-		let DepthOnly = true
 		
 		//	skip non-depth
 		while true
@@ -231,7 +157,7 @@ class PopCameraDeviceFrameSource : FrameSource
 				break
 			}
 			//	is/not depth
-			let ExpectedChannels = DepthOnly ? 1 : 3
+			let ExpectedChannels = drawDepth ? 1 : 3
 			if ( Plane0.Channels == ExpectedChannels )
 			{
 				break

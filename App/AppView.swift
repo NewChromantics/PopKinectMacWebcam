@@ -157,7 +157,12 @@ struct AppView : View
 	@EnvironmentObject var popCameraDeviceManager : PopCameraDeviceManager
 	@State var activeDeviceSerial : String?
 	let debugSourceSerial = "Debug"
+
+	//	frame source params
+	//	todo: change these when frame source changes to use it's defaults
 	@State var depthParams = DepthParams()	//	todo: bind directly(possible?) to frame source variables
+	@State var drawErrorFrames = false
+	@State var drawDepth = true
 
 	init()
 	{
@@ -334,11 +339,14 @@ struct AppView : View
 			{
 				CameraPreview()
 					.environmentObject(sinkStreamPusher)
+					.padding(10)
 			
 				VStack
 				{
 					if ( sinkStreamPusher.frameSource is PopCameraDeviceFrameSource )
 					{
+						let framesource = sinkStreamPusher.frameSource as! PopCameraDeviceFrameSource
+						
 						Text("Depth range of \(depthParams.depthClipNear)...\(depthParams.depthClipFar)mm")
 						
 						//	todo: make a 2 headed slider
@@ -346,19 +354,40 @@ struct AppView : View
 						Slider(value: .convert($depthParams.depthClipNear), in: DepthParams.depthMinMax)
 							.onChange(of: depthParams.depthClipNear)
 						{
-							let framesource = sinkStreamPusher.frameSource as! PopCameraDeviceFrameSource
 							framesource.depthParams = self.depthParams
 						}
 						
 						Slider(value: .convert($depthParams.depthClipFar), in: DepthParams.depthMinMax)
 							.onChange(of: depthParams.depthClipFar)
 						{
-							let framesource = sinkStreamPusher.frameSource as! PopCameraDeviceFrameSource
 							framesource.depthParams = self.depthParams
 						}
 						
+						VStack(alignment: .leading)
+						{
+							Toggle(isOn:$drawDepth)
+							{
+								Text("Draw depth")
+							}
+							.onChange(of: drawDepth)
+							{
+								framesource.drawDepth = drawDepth
+							}
+							
+							Toggle(isOn:$drawErrorFrames)
+							{
+								Text("Draw error frames")
+							}
+							.onChange(of: drawErrorFrames)
+							{
+								framesource.drawErrorFrames = drawErrorFrames
+							}
+						}
+						
+						Spacer()
 					}
 				}
+				.padding(10)
 			}
 			
 			ScrollView
