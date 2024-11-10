@@ -220,8 +220,9 @@ class PopCameraDeviceFrameSource : FrameSource
 		{
 			let options : [AnyHashable:Any] = [
 				//"Format":"Yuv_8_88"
-				"Format":"RGB"
-				//"DepthFormat":"Depth16mm"
+				//"Format":"RGB^1280x1024@30"
+				"Format":"RGB",
+				"DepthFormat":"Depth16mm"
 			]
 			self.deviceInstance = PopCameraDeviceInstance(serial:deviceSerial,options:options)
 		}
@@ -232,11 +233,18 @@ class PopCameraDeviceFrameSource : FrameSource
 		
 		var NextFrame = try deviceInstance.PopNextFrame()
 		
+		let DepthOnly = true
+		
 		//	skip non-depth
-		while ( NextFrame != nil )
+		while true
 		{
+			guard let Plane0 = NextFrame?.Meta.Planes?[0] else
+			{
+				break
+			}
 			//	is/not depth
-			if ( NextFrame!.Meta.Planes?[0].Channels != 1 )
+			let ExpectedChannels = DepthOnly ? 1 : 3
+			if ( Plane0.Channels == ExpectedChannels )
 			{
 				break
 			}
@@ -269,7 +277,8 @@ class PopCameraDeviceFrameSource : FrameSource
 			throw RuntimeError("Popped frame but no pixels")
 		}
 
-		let planeMeta = ImageMeta( width:UInt32(planes[0].Width), height:UInt32(planes[0].Height), imageFormat:.rgb8 )
+		let Plane0 = planes[0]
+		let planeMeta = try ImageMeta( width:UInt32(Plane0.Width), height:UInt32(Plane0.Height), imageFormat:ConvertorImageFormat(Plane0.Format) )
 
 		let rgba8Pixels = try await WebGpuConvertImageFormat.Convert(meta:planeMeta,data:pixelData,outputFormat:.bgra8)
 		

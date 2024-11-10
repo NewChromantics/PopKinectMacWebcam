@@ -2,11 +2,174 @@ import SwiftUI
 import WebGPU
 import CoreMedia
 
+let ConvertImageKernelSource = """
+  //	no byte access, so access is 32 bit and we need to work around that
+  @group(0) @binding(0) var<storage, read> inputRgb8 : array<u32>;
+  @group(0) @binding(1) var<storage, read_write> outputBgra8 : array<u32>;
+  
+  fn GetInput8Value(index:u32) -> u32
+  {
+   let chunkIndex = index / 4;
+   let chunk = inputRgb8[chunkIndex];
+   let chunkByteIndex = index % 4;
+   let byte = chunk >> (chunkByteIndex*8);
+   return byte & 0xff;
+  }
+  
+  fn GetInput16Value(index:u32) -> u32
+  {
+   let chunkIndex = index / 2;
+   let chunk = inputRgb8[chunkIndex];
+   let chunkByteIndex = index % 2;
+   let byte = chunk >> (chunkByteIndex*16);
+   return byte & 0xffff;
+  }
+  
+  fn GetInputRgbBytes(pixelIndex:u32) -> vec3<u32>
+  {
+   let rgbChannelCount : u32 = 3;
+   let InputIndex = pixelIndex * rgbChannelCount;
+   let r = GetInput8Value(InputIndex+0);
+   let g = GetInput8Value(InputIndex+1);
+   let b = GetInput8Value(InputIndex+2);
+   return vec3<u32>( r, g, b );
+  }
+  
+  fn GetInputDepth16(pixelIndex:u32) -> u32
+  {
+   return GetInput16Value(pixelIndex);
+  }
+  
+  fn GetBgra32(red:u32,green:u32,blue:u32,alpha:u32) -> u32
+  {
+   let bgra32 = (blue<<0) | (green<<8) | (red<<16) | (alpha<<24);
+   return u32(bgra32);
+  }
+  
+  fn Range32(min:u32,max:u32,value:u32) -> f32
+  {
+   return ( f32(value-min) / f32(max-min) );
+  }
+  
+  fn Rangef(min:f32,max:f32,value:f32) -> f32
+  {
+   return ( f32(value-min) / f32(max-min) );
+  }
+  
+  fn NormalToRgbf(normal:f32) -> vec3<f32>
+  {
+   var Normal = normal;
+   let blocks = 4.0;	//	ry yg gc cb
+   if ( Normal < 0 )
+   {
+    return vec3(0,0,1);
+   }
+   else if ( Normal < 1.0/blocks )
+   {
+	//	red to yellow
+	Normal = Rangef( 0/blocks, 1/blocks, Normal );
+	return vec3(1, Normal, 0);
+   }
+   else if ( Normal < 2/blocks )
+   {
+	//	yellow to green
+	Normal = Rangef( 1/blocks, 2/blocks, Normal );
+	return vec3(1-Normal, 1, 0);
+   }
+   else if ( Normal < 3/blocks )
+   {
+    //	green to cyan
+    Normal = Rangef( 2/blocks, 3/blocks, Normal );
+    return vec3(0, 1, Normal);
+   }
+   else if ( Normal < 4/blocks )
+   {
+    //	cyan to blue
+    Normal = Rangef( 3/blocks, 4/blocks, Normal );
+    return vec3(0, 1-Normal, 1);
+   }
+   else // > blocks/blocks (1)
+   {
+    return vec3(0,0,0);
+   }
+  }
+  
+  fn NormalToRgb(normal:f32) -> vec3<u32>
+  {
+   let rgbf = NormalToRgbf(normal) * vec3<f32>(255,255,255);
+   return vec3( u32(rgbf.x), u32(rgbf.y), u32(rgbf.z) );
+  }
+  
+  @compute @workgroup_size(1,1,1) fn convert_rgb8_to_bgra8(
+   @builtin(workgroup_id) workgroup_id : vec3<u32>,
+   @builtin(local_invocation_id) local_invocation_id : vec3<u32>,
+   @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
+   @builtin(local_invocation_index) local_invocation_index: u32,
+   @builtin(num_workgroups) num_workgroups: vec3<u32>
+  )
+  {
+   let width = num_workgroups.x;
+   let height = num_workgroups.y;
+   let x = workgroup_id.x;
+   let y = workgroup_id.y;
+   let pixelIndex = (y * width) + x;
+  
+   //	input is 32bit aligned, so we need to read individual parts
+   let rgb = GetInputRgbBytes(pixelIndex);
+   let bgra32 = GetBgra32( rgb.x, rgb.y, rgb.z, 255 );
+   outputBgra8[pixelIndex] = bgra32;
+  }
+  
+  @compute @workgroup_size(1,1,1) fn convert_depth16mm_to_bgra8(
+   @builtin(workgroup_id) workgroup_id : vec3<u32>,
+   @builtin(local_invocation_id) local_invocation_id : vec3<u32>,
+   @builtin(global_invocation_id) global_invocation_id : vec3<u32>,
+   @builtin(local_invocation_index) local_invocation_index: u32,
+   @builtin(num_workgroups) num_workgroups: vec3<u32>
+  )
+  {
+   let width = num_workgroups.x;
+   let height = num_workgroups.y;
+   let x = workgroup_id.x;
+   let y = workgroup_id.y;
+   let pixelIndex = (y * width) + x;
+  
+   //	todo: make these uniforms
+   let depthMin16 = 100u;
+   let depthMax16 = 15*1000u;
+  
+   //	input is 32bit aligned, so we need to read individual parts
+   let depth16 = GetInputDepth16(pixelIndex);
+   var depthf = Range32( depthMin16, depthMax16, depth16 );
+   //depthf = Range32( 0, width, x );
+   let rgb = NormalToRgb(depthf);
+   let valid = ( depthf >= 0.0 && depthf <= 1.0); 
+   var alpha : u32 = 255;
+   if ( !valid )
+   {
+    alpha = 0;
+   }
+   let bgra32 = GetBgra32( rgb.x, rgb.y, rgb.z, alpha );
+   outputBgra8[pixelIndex] = u32(bgra32);
+  }
+"""
 
 enum ConvertorImageFormat
 {
 	case rgb8
 	case bgra8
+	case depth16mm
+	
+	init(_ name:String) throws
+	{
+		switch name
+		{
+			case "RGB":			self = .rgb8
+			case "BGRA":		self = .bgra8
+			case "Depth16mm":	self = .depth16mm
+			default:	throw RuntimeError("Unknown image format name \(name)")
+		}
+	}
 	
 	//	will throw for unhandled or unconvertible types
 	func GetWebGpuTextureFormat() throws -> TextureFormat
@@ -34,8 +197,19 @@ enum ConvertorImageFormat
 	{
 		switch self
 		{
-			case .rgb8:		return 3
-			case .bgra8:	return 4
+			case .rgb8:			return 3
+			case .bgra8:		return 4
+			case .depth16mm:	return 1
+		}
+	}
+	
+	var channelByteSize : UInt32
+	{
+		switch self
+		{
+			case .rgb8:			return 1
+			case .bgra8:		return 1
+			case .depth16mm:	return 2
 		}
 	}
 }
@@ -64,18 +238,14 @@ public struct ImageMeta : Equatable
 		}
 	}
 	
-	var channels : UInt32
-	{
-		get throws
-		{
-			return try imageFormat.channelCount
-		}
-	}
+	var channels : UInt32 {	return try imageFormat.channelCount	}
+	var channelByteSize : UInt32	{	return try imageFormat.channelByteSize	}
+	
 	var byteSize : UInt64
 	{
 		get throws
 		{
-			return try (UInt64(channels * width * height))
+			return try (UInt64(channels * channelByteSize * width * height))
 		}
 	}
 }
@@ -117,59 +287,11 @@ class WebGpuConvertImageFormat
 		self.outputMappable = device.createBuffer(descriptor: outputMappableDescription)
 	}
 	
-	var ConvertImageKernelSource : String
+	var kernelEntryName : String
 	{
-		return """
-		//	no byte access, so access is 32 bit and we need to work around that
-		@group(0) @binding(0) var<storage, read> inputRgb8 : array<u32>;
-		@group(0) @binding(1) var<storage, read_write> outputBgra8 : array<u32>;
-
-		fn GetInputByte(index:u32) -> u32
-		{
-			let chunkIndex = index / 4;
-			let chunk = inputRgb8[chunkIndex];
-			let chunkByteIndex = index % 4;
-			let byte = chunk >> (chunkByteIndex*8);
-			return byte & 0xff;
-		}
-
-		fn GetInputBytes(pixelIndex:u32) -> vec3<u32>
-		{
-			let rgbChannelCount : u32 = 3;
-			let InputIndex = pixelIndex * rgbChannelCount;
-			let r = GetInputByte(InputIndex+0);
-			let g = GetInputByte(InputIndex+1);
-			let b = GetInputByte(InputIndex+2);
-			return vec3<u32>( r, g, b );
-		}
-
-		@compute @workgroup_size(1,1,1) fn Rgb8ToBgra8(
-			@builtin(workgroup_id) workgroup_id : vec3<u32>,
-			@builtin(local_invocation_id) local_invocation_id : vec3<u32>,
-			@builtin(global_invocation_id) global_invocation_id : vec3<u32>,
-			@builtin(local_invocation_index) local_invocation_index: u32,
-			@builtin(num_workgroups) num_workgroups: vec3<u32>
-		)
-		{
-			let width = num_workgroups.x;
-			let height = num_workgroups.y;
-			let x = workgroup_id.x;
-			let y = workgroup_id.y;
-			let pixelIndex = (y * width) + x;
-
-			//	input is 32bit aligned, so we need to read individual parts
-			let rgb = GetInputBytes(pixelIndex);
-			let red : u32 = rgb.x;
-			let green : u32 = rgb.y;
-			let blue : u32 = rgb.z;
-			let alpha : u32 = 255;
-
-			let bgra32 = (blue<<0) | (green<<8) | (red<<16) | (alpha<<24);
-			outputBgra8[pixelIndex] = u32(bgra32);
-		}
-		"""
+		return "convert_\(inputMeta.imageFormat)_to_\(outputMeta.imageFormat)"
 	}
-	
+			
 	//	put new data into the input buffer
 	//	func writeData
 	
@@ -195,13 +317,15 @@ class WebGpuConvertImageFormat
 			bindGroupLayouts: [bindGroupLayout])
 		)
 		
+		//let kernelName = "convert_rgb8_to_bgra8"
+		let kernelName = kernelEntryName
 		let kernelSource = ShaderSourceWgsl(code:ConvertImageKernelSource)
 		let kernelMeta = ShaderModuleDescriptor(label:"Convert Kernel",nextInChain: kernelSource)
 		let kernelModule = device.createShaderModule(descriptor: kernelMeta)
-		let kernelStage = ProgrammableStageDescriptor(module: kernelModule, entryPoint: "Rgb8ToBgra8")
+		let kernelStage = ProgrammableStageDescriptor(module: kernelModule, entryPoint: kernelName)
 		
 		let pipelineDescription = ComputePipelineDescriptor(
-			label: "ConvertImagePipeline",
+			label: "ConvertImagePipeline \(kernelName)",
 			layout: pipelineLayout,
 			compute: kernelStage
 		)
