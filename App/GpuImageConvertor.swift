@@ -2,11 +2,25 @@ import SwiftUI
 import WebGPU
 import CoreMedia
 
+struct DepthParams
+{
+	var depthMin = UInt32(10)
+	var depthMax = UInt32(15000)
+}
+
+
 let ConvertImageKernelSource = """
+struct DepthParams {
+ depthMin : u32,	//	100
+ depthMax : u32,	//	15000
+}
+
   //	no byte access, so access is 32 bit and we need to work around that
   @group(0) @binding(0) var<storage, read> inputRgb8 : array<u32>;
   @group(0) @binding(1) var<storage, read_write> outputBgra8 : array<u32>;
+  @group(0) @binding(2) var<uniform> depthParams : DepthParams;
   
+
   fn GetInput8Value(index:u32) -> u32
   {
    let chunkIndex = index / 4;
@@ -134,13 +148,9 @@ let ConvertImageKernelSource = """
    let y = workgroup_id.y;
    let pixelIndex = (y * width) + x;
   
-   //	todo: make these uniforms
-   let depthMin16 = 100u;
-   let depthMax16 = 15*1000u;
-  
    //	input is 32bit aligned, so we need to read individual parts
    let depth16 = GetInputDepth16(pixelIndex);
-   var depthf = Range32( depthMin16, depthMax16, depth16 );
+   var depthf = Range32( depthParams.depthMin, depthParams.depthMax, depth16 );
    //depthf = Range32( 0, width, x );
    let rgb = NormalToRgb(depthf);
    let valid = ( depthf >= 0.0 && depthf <= 1.0); 
@@ -258,6 +268,9 @@ class WebGpuConvertImageFormat
 	var outputBuffer : Buffer
 	var outputMappable : Buffer	//	to read pixels, need a mappable type, which is incompatible with the storage
 	var outputMeta : ImageMeta
+	var depthParams = DepthParams()
+	var depthParamsBuffer : Buffer
+	
 	var outputBufferCopyMeta : ImageCopyBuffer
 	{
 		get throws
@@ -285,6 +298,18 @@ class WebGpuConvertImageFormat
 		let outputMappableUsage = BufferUsage(rawValue: BufferUsage.mapRead.rawValue | BufferUsage.copyDst.rawValue )
 		let outputMappableDescription = BufferDescriptor(label: "convertImageOutputMappable", usage:outputMappableUsage, size: outputByteSize )
 		self.outputMappable = device.createBuffer(descriptor: outputMappableDescription)
+		
+		self.depthParamsBuffer = withUnsafeBytes(of: depthParams)
+		{
+			bytes in
+			let buffer = device.createBuffer(descriptor: BufferDescriptor(
+				usage: .uniform,
+				size: UInt64(bytes.count),
+				mappedAtCreation: true))
+			buffer.getMappedRange().copyMemory(from: bytes.baseAddress!, byteCount: bytes.count)
+			buffer.unmap()
+			return buffer
+		}
 	}
 	
 	var kernelEntryName : String
@@ -310,6 +335,7 @@ class WebGpuConvertImageFormat
 			entries: [
 				BindGroupLayoutEntry(binding: 0,visibility:.compute, buffer: BufferBindingLayout(type:.readOnlyStorage) ),
 				BindGroupLayoutEntry(binding: 1,visibility:.compute, buffer: BufferBindingLayout(type:.storage) ),
+				BindGroupLayoutEntry(binding: 2,visibility:.compute, buffer: BufferBindingLayout(type:.uniform) ),
 			]
 		))
 		
@@ -338,7 +364,8 @@ class WebGpuConvertImageFormat
 										   layout: pipeline.getBindGroupLayout(groupIndex:0),
 										   entries: [
 											BindGroupEntry( binding: 0, buffer: inputRgb8 ),
-											BindGroupEntry( binding: 1, buffer: outputBgra8 )
+											BindGroupEntry( binding: 1, buffer: outputBgra8 ),
+											BindGroupEntry( binding: 2, buffer: depthParamsBuffer ),
 										   ]
 		)
 		
