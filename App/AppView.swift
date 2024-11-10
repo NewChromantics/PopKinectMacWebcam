@@ -343,14 +343,14 @@ struct AppView : View
 						
 						//	todo: make a 2 headed slider
 						//	gr: ^^^ i already wrote one!
-						Slider(value: .convert($depthParams.depthClipNear), in: 1...65535)
+						Slider(value: .convert($depthParams.depthClipNear), in: DepthParams.depthMinMax)
 							.onChange(of: depthParams.depthClipNear)
 						{
 							let framesource = sinkStreamPusher.frameSource as! PopCameraDeviceFrameSource
 							framesource.depthParams = self.depthParams
 						}
 						
-						Slider(value: .convert($depthParams.depthClipFar), in: 1...65535)
+						Slider(value: .convert($depthParams.depthClipFar), in: DepthParams.depthMinMax)
 							.onChange(of: depthParams.depthClipFar)
 						{
 							let framesource = sinkStreamPusher.frameSource as! PopCameraDeviceFrameSource

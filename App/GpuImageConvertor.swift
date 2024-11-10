@@ -4,10 +4,16 @@ import CoreMedia
 
 struct DepthParams
 {
-	var depthClipNear = UInt32(10)
-	var depthClipFar = UInt32(15000)
-	//let depthMin = UInt32(1)	//	0 is invalid
-	//let depthMax = UInt32(4095)	//	11bit range 0xfff
+	var depthClipNear = depthMin
+	var depthClipFar = depthMax
+	
+	static let depthMinMax = Float(depthMin)...Float(depthMax)
+	static let depthMin = UInt32(500)	//	0 is invalid
+	//	11bit range, but after conversion to mm, the range is 0.7–6 meters
+	//	is this data expanded, or not?.... the data goes well beyond 4096
+	//	this should all be solved in PopCameraDevice, but can we get that info at compile time? (or have dynamic ranges?)
+	//static let depthMax = UInt32(4096)	//	11 bit
+	static let depthMax = UInt32(depthMin+(7*1000))
 }
 
 
