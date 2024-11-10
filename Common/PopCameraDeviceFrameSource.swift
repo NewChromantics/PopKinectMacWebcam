@@ -269,28 +269,35 @@ class PopCameraDeviceFrameSource : FrameSource
 
 		let rgba8Format = try StreamImageFormat(width: planeMeta.width, height: planeMeta.height, pixelFormat: ConvertorImageFormat.bgra8.GetCoreMediaTextureFormat())
 		
-		//	todo: make a closure to do something with resulting bytes
-		let rgba8Pixels = try await WebGpuConvertImageFormat.Convert(meta:planeMeta,data:pixelData,outputFormat:.bgra8)
-				
-		//	write into the output buffer
-		CVPixelBufferLockBaseAddress(pixelBuffer, [])
-
-		let destData = CVPixelBufferGetBaseAddress(pixelBuffer)
-		let destDataSize = CVPixelBufferGetDataSize(pixelBuffer)
-		try rgba8Pixels.withUnsafeBytes
+		var rgba8PixelsData = Data()
+		
+		try await WebGpuConvertImageFormat.Convert(meta:planeMeta,data:pixelData,outputFormat:.bgra8)
 		{
-			rgba8PixelsPtr in
-			destData?.copyMemory(from: rgba8PixelsPtr, byteCount: rgba8Pixels.count)
+			rgba8Pixels in
+			
+			//	doing a redundant copy - hopefully we can get rid of .originalPixels soon
+			rgba8PixelsData = Data(rgba8Pixels)
+			
+			//	write into the output buffer
+			CVPixelBufferLockBaseAddress(pixelBuffer, [])
+			
+			let destData = CVPixelBufferGetBaseAddress(pixelBuffer)
+			let destDataSize = CVPixelBufferGetDataSize(pixelBuffer)
+			try rgba8PixelsData.withUnsafeBytes
+			{
+				rgba8PixelsPtr in
+				destData?.copyMemory(from: rgba8PixelsPtr, byteCount: rgba8Pixels.count)
+			}
+			CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
 		}
-		CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-
+		
 		//	written to buffer, now return it
 		//	todo: get tmestamp from meta
 		let timestamp = CMClockGetTime(CMClockGetHostTimeClock())
 		let pixelFormat = try planes[0].GetStreamImageFormat().GetFormatDescripton()
 		let dimensions = (planeMeta.width,planeMeta.height)
 		var frame = Frame(dimensions: dimensions, pixels: pixelBuffer, format: pixelFormat, time: timestamp)
-		frame.originalPixels = rgba8Pixels
+		frame.originalPixels = rgba8PixelsData
 		return frame
 	}
 	

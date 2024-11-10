@@ -365,9 +365,18 @@ extension WebGpuConvertImageFormat
 {
 	static let gpu = WebGPU.WebGpuRenderer()
 	
-	
-	
 	static func Convert(meta:ImageMeta,data:Data,outputFormat:ConvertorImageFormat) async throws -> Data
+	{
+		var outputData = Data()
+		try await Convert(meta:meta, data: data, outputFormat: outputFormat)
+		{
+			outputBufferView8Ptr in
+			outputData = Data(outputBufferView8Ptr)
+		}
+		return outputData
+	}
+	
+	static func Convert(meta:ImageMeta,data:Data,outputFormat:ConvertorImageFormat,onGotOutput:(UnsafeBufferPointer<UInt8>)throws->Void) async throws
 	{
 		let outputMeta = ImageMeta(width: meta.width, height: meta.height, imageFormat: outputFormat)
 		//	todo: make an async gpu.WaitForDevice()
@@ -435,10 +444,17 @@ extension WebGpuConvertImageFormat
 		let outputBufferView8 = outputBufferView.bindMemory(to: UInt8.self, capacity: Int(outputByteSize) )
 		let outputBufferView8Ptr = UnsafeBufferPointer(start: outputBufferView8, count: Int(outputByteSize) )
 		
-		let outputData = Data(outputBufferView8Ptr)
-		readBuffer.unmap()
-
-		return outputData
+		do
+		{
+			try onGotOutput(outputBufferView8Ptr)
+			readBuffer.unmap()
+		}
+		catch let error
+		{
+			readBuffer.unmap()
+			throw error
+		}
+		
 	}
 }
 
