@@ -367,7 +367,7 @@ extension WebGpuConvertImageFormat
 	
 	
 	
-	static func Convert(meta:ImageMeta,data:Data,outputFormat:ConvertorImageFormat) async throws -> [UInt8]
+	static func Convert(meta:ImageMeta,data:Data,outputFormat:ConvertorImageFormat) async throws -> Data
 	{
 		let outputMeta = ImageMeta(width: meta.width, height: meta.height, imageFormat: outputFormat)
 		//	todo: make an async gpu.WaitForDevice()
@@ -435,7 +435,7 @@ extension WebGpuConvertImageFormat
 		let outputBufferView8 = outputBufferView.bindMemory(to: UInt8.self, capacity: Int(outputByteSize) )
 		let outputBufferView8Ptr = UnsafeBufferPointer(start: outputBufferView8, count: Int(outputByteSize) )
 		
-		let outputData = [UInt8](outputBufferView8Ptr)
+		let outputData = Data(outputBufferView8Ptr)
 		readBuffer.unmap()
 
 		return outputData

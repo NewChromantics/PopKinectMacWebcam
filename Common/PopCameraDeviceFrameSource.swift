@@ -188,22 +188,9 @@ class PopCameraDeviceFrameSource : FrameSource
 		let pixelBuffer = try AllocateBuffer(format: DebugFormat)
 		
 		//	write into the buffer
-		do
-		{
-			//	lock pixels...
-			CVPixelBufferLockBaseAddress(pixelBuffer, [])
-			
-			//	pop frame into our buffer
-			RenderFrame(pixelBuffer, text:text, backgroundColour: NSColor.blue.cgColor)
-			//RenderFrame(pixelBuffer,timestamp:timestamp)
-			
-			CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-		}
-		catch let error
-		{
-			ReleaseBuffer(pixelBuffer)
-			throw error
-		}
+		CVPixelBufferLockBaseAddress(pixelBuffer, [])
+		RenderText(pixelBuffer, text:text, backgroundColour: NSColor.blue.cgColor)
+		CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
 		
 		//	written to buffer, now return it
 		//	todo: get tmestamp from meta
@@ -280,32 +267,22 @@ class PopCameraDeviceFrameSource : FrameSource
 		let Plane0 = planes[0]
 		let planeMeta = try ImageMeta( width:UInt32(Plane0.Width), height:UInt32(Plane0.Height), imageFormat:ConvertorImageFormat(Plane0.Format) )
 
-		let rgba8Pixels = try await WebGpuConvertImageFormat.Convert(meta:planeMeta,data:pixelData,outputFormat:.bgra8)
-		
 		let rgba8Format = try StreamImageFormat(width: planeMeta.width, height: planeMeta.height, pixelFormat: ConvertorImageFormat.bgra8.GetCoreMediaTextureFormat())
 		
-		//	write into the buffer
-		do
-		{
-			//	lock pixels...
-			CVPixelBufferLockBaseAddress(pixelBuffer, [])
+		//	todo: make a closure to do something with resulting bytes
+		let rgba8Pixels = try await WebGpuConvertImageFormat.Convert(meta:planeMeta,data:pixelData,outputFormat:.bgra8)
+				
+		//	write into the output buffer
+		CVPixelBufferLockBaseAddress(pixelBuffer, [])
 
-			let destData = CVPixelBufferGetBaseAddress(pixelBuffer)
-			let destDataSize = CVPixelBufferGetDataSize(pixelBuffer)
-			destData?.copyMemory(from: rgba8Pixels, byteCount: rgba8Pixels.count)
-			
-			//try RenderRgbPlanes(pixelBuffer: pixelBuffer, pixelData:pixelData, pixelDataMeta:planes[0] )
-			
-			//RenderFrame(pixelBuffer, text:"todo: render new frame", backgroundColour: NSColor.red.cgColor)
-			//RenderFrame(pixelBuffer,timestamp:timestamp)
-			
-			CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-		}
-		catch let error
+		let destData = CVPixelBufferGetBaseAddress(pixelBuffer)
+		let destDataSize = CVPixelBufferGetDataSize(pixelBuffer)
+		try rgba8Pixels.withUnsafeBytes
 		{
-			ReleaseBuffer(pixelBuffer)
-			throw error
+			rgba8PixelsPtr in
+			destData?.copyMemory(from: rgba8PixelsPtr, byteCount: rgba8Pixels.count)
 		}
+		CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
 
 		//	written to buffer, now return it
 		//	todo: get tmestamp from meta
@@ -313,7 +290,7 @@ class PopCameraDeviceFrameSource : FrameSource
 		let pixelFormat = try planes[0].GetStreamImageFormat().GetFormatDescripton()
 		let dimensions = (planeMeta.width,planeMeta.height)
 		var frame = Frame(dimensions: dimensions, pixels: pixelBuffer, format: pixelFormat, time: timestamp)
-		frame.originalPixels = Data(rgba8Pixels)
+		frame.originalPixels = rgba8Pixels
 		return frame
 	}
 	
