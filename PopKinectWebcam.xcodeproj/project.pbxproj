@@ -119,7 +119,6 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		BF1364A02CE22979004C965D /* WebTest */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WebTest; sourceTree = "<group>"; };
 		BF2318482CD8F65200A94ABA /* App */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (BFA93CFB2CDEBEBD0048480E /* PBXFileSystemSynchronizedBuildFileExceptionSet */, BFA93CFE2CDEBEE70048480E /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = App; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -168,7 +167,6 @@
 		F990A85C286F663F00159819 = {
 			isa = PBXGroup;
 			children = (
-				BF1364A02CE22979004C965D /* WebTest */,
 				BF2318482CD8F65200A94ABA /* App */,
 				BF7CEF7A2CB6C66A00A20F77 /* Common */,
 				F990A87C286F666500159819 /* Extension */,
