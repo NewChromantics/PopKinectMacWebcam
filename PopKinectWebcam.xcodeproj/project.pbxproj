@@ -80,7 +80,6 @@
 		BF3311E42CB6A39400D3936A /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 		BF3BBA602CDAB6B6003A0739 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
 		BF76118D2CBC0AAB00EB4BE1 /* FrameSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameSource.swift; sourceTree = "<group>"; };
-		BF76118F2CBD235000EB4BE1 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = index.html; sourceTree = "<group>"; };
 		BF7611912CBD69AD00EB4BE1 /* KinectDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinectDevice.swift; sourceTree = "<group>"; };
 		BF7CEF792CB6C66A00A20F77 /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 		BF7CEF7B2CB6C72B00A20F77 /* App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = App.xcconfig; sourceTree = "<group>"; };
@@ -120,6 +119,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		BF1364A02CE22979004C965D /* WebTest */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WebTest; sourceTree = "<group>"; };
 		BF2318482CD8F65200A94ABA /* App */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (BFA93CFB2CDEBEBD0048480E /* PBXFileSystemSynchronizedBuildFileExceptionSet */, BFA93CFE2CDEBEE70048480E /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = App; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -152,14 +152,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		BF7611902CBD235000EB4BE1 /* WebTest */ = {
-			isa = PBXGroup;
-			children = (
-				BF76118F2CBD235000EB4BE1 /* index.html */,
-			);
-			path = WebTest;
-			sourceTree = "<group>";
-		};
 		BF7CEF7A2CB6C66A00A20F77 /* Common */ = {
 			isa = PBXGroup;
 			children = (
@@ -176,8 +168,8 @@
 		F990A85C286F663F00159819 = {
 			isa = PBXGroup;
 			children = (
+				BF1364A02CE22979004C965D /* WebTest */,
 				BF2318482CD8F65200A94ABA /* App */,
-				BF7611902CBD235000EB4BE1 /* WebTest */,
 				BF7CEF7A2CB6C66A00A20F77 /* Common */,
 				F990A87C286F666500159819 /* Extension */,
 				F990A866286F663F00159819 /* Products */,
