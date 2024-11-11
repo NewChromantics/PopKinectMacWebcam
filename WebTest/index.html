@@ -1,13 +1,30 @@
 <html>
 	<head>
+		<script type=module src="./WebcamMonitor.Element.js"></script>
 		<style>
+			
+			body
+			{
+				display:	grid;
+				grid-template-columns:	repeat(auto-fill, minmax(30vw, 1fr));
+				grid-template-areas:	"Error"
+										"DeviceList"
+										"VideoWall";
+				grid-template-columns:	1fr;
+				grid-template-rows: 	auto auto 1fr;
+				grid-gap:				0.5em;
+				
+				font-size:		150%;
+				margin:			0px;
+				padding:		1em;
+			}
 			
 			#Error
 			{
+				grid-area:	Error;
 				border: 1px solid;
 				color: #eee;
 				background: #e33;
-				margin:	1em;
 				padding: 1em;
 			}
 			
@@ -16,13 +33,37 @@
 				display:none;
 			}
 			
+			#DeviceList
+			{
+				grid-area:	DeviceList;
+				background:	#3ee;
+				padding:	1em;
+			}
+			
+			#VideoWall
+			{
+				grid-area:	VideoWall;
+				background:	#eee;
+				display:	grid;
+				grid-gap:	0.5em;
+				grid-template-columns: repeat(auto-fill, minmax(30vw, 1fr));
+				xxgrid-template-rows: 100px 100px 100px;
+				grid-auto-flow: column;
+			}
+			
+			#VideoWall *
+			{
+				display:	inline-block;
+				background:	red;
+			}
 		</style>
 	</head>
 	
 	<body>
 		<div id=Error></div>
 		<div id=DeviceList></div>
-		
+		<div id=VideoWall>
+		</div>
 		
 		<script type=module>
 		
@@ -52,10 +93,43 @@
 			const ErrorElement = document.querySelector('#Error');
 			ErrorElement.innerText = `${Error}`;
 		}
+		
+		function IsMatchingWebcamElement(Element,Device)
+		{
+			return ( Element.deviceUid == Device.deviceId );
+		}
+		
+		function OnFoundDevice(Device)
+		{
+			const VideoWall = document.querySelector(`#VideoWall`);
+			const ExistingElement = Array.from(VideoWall.children).find( e => IsMatchingWebcamElement(e,Device) );
+			if ( ExistingElement )
+				return;
+				
+			//	add new entry
+			const NewWebcam = document.createElement('webcam-monitor');
+			NewWebcam.deviceName = Device.label;
+			NewWebcam.deviceUid = Device.deviceId;
+			VideoWall.appendChild(NewWebcam);
 			
+			//	check we can find the element we just added
+			const NewElementCheck = Array.from(VideoWall.children).find( e => IsMatchingWebcamElement(e,Device) );
+			if ( !NewElementCheck )
+				throw `Failed to find the webcam element we just added`;
+		}
+		
+		function IsVideoInputDevice(Device)
+		{
+			return Device.kind == 'videoinput';
+		}
+		
 		function OnDevicesFound(Devices)
 		{
 			console.log(Devices);
+			Devices = Devices.filter( IsVideoInputDevice );
+			
+			Devices.forEach(OnFoundDevice);
+			
 			const ListElement = document.querySelector('#DeviceList');
 			
 			function GetDeviceLabel(Device)
