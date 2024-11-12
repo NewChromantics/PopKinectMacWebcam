@@ -138,7 +138,7 @@ class PopCameraDeviceFrameSource : FrameSource
 	{
 		if deviceInstance == nil
 		{
-			let options : [AnyHashable:Any] = [
+			let options : [String:Any] = [
 				//"Format":"Yuv_8_88"
 				//"Format":"RGB^1280x1024@30"
 				"Format":"RGB",
